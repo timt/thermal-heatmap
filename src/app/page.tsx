@@ -1,237 +1,256 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import dynamic from "next/dynamic";
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { ThermalData } from "@/components/MapView";
+import { DatePicker } from "@/components/DatePicker";
+import { ClimbRateSlider } from "@/components/ClimbRateSlider";
+import { StatsPanel } from "@/components/StatsPanel";
+import { ProcessingProgress } from "@/components/ProcessingProgress";
+import { CacheFreshness } from "@/components/CacheFreshness";
 
-interface City {
+const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+
+const BATCH_SIZE = 5;
+
+function yesterday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+}
+
+interface FlightInfo {
   id: string;
-  name: string;
-  latitude: number | null;
-  longitude: number | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface WeatherData {
-  temperature: number;
-  weathercode: number;
-  windspeed: number;
-}
-
-function getWeatherLabel(code: number): string {
-  if (code === 0) return "Clear sky ☀️";
-  if (code >= 1 && code <= 3) return "Partly cloudy ⛅";
-  if (code >= 45 && code <= 48) return "Fog 🌫️";
-  if (code >= 51 && code <= 67) return "Rain 🌧️";
-  if (code >= 71 && code <= 77) return "Snow ❄️";
-  if (code >= 80 && code <= 82) return "Showers 🌦️";
-  if (code >= 95 && code <= 99) return "Thunderstorm ⛈️";
-  return `Unknown (${code})`;
+  hasTrackData: boolean;
 }
 
 export default function Home() {
-  const [cities, setCities] = useState<City[]>([]);
-  const [newCityName, setNewCityName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [weather, setWeather] = useState<Record<string, WeatherData>>({});
-  const [weatherLoading, setWeatherLoading] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [selectedDate, setSelectedDate] = useState(yesterday);
+  const [processedDates, setProcessedDates] = useState<string[]>([]);
+  const [minClimbRate, setMinClimbRate] = useState(0.5);
+  const [thermals, setThermals] = useState<ThermalData[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentFlight, setCurrentFlight] = useState(0);
+  const [totalFlights, setTotalFlights] = useState(0);
+  const [thermalsFound, setThermalsFound] = useState(0);
+  const [processedAt, setProcessedAt] = useState<string | null>(null);
+  const [flightCount, setFlightCount] = useState(0);
+  const [newFlightsAvailable, setNewFlightsAvailable] = useState(0);
+  const [statsCollapsed, setStatsCollapsed] = useState(false);
 
-  async function fetchCities() {
-    try {
-      const res = await fetch("/api/cities");
-      const data = await res.json();
-      setCities(data);
-    } catch (err) {
-      console.error("Failed to fetch cities:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const abortRef = useRef<AbortController | null>(null);
 
+  // Fetch processed dates for calendar
   useEffect(() => {
-    fetchCities();
+    fetch("/api/processed-dates?source=bga")
+      .then((r) => r.json())
+      .then((data) => {
+        setProcessedDates(data.dates.map((d: { date: string }) => d.date));
+        // Default to most recent processed date if available
+        if (data.dates.length > 0) {
+          setSelectedDate(data.dates[0].date);
+        }
+      })
+      .catch(console.error);
   }, []);
 
-  async function handleAdd(e: FormEvent) {
-    e.preventDefault();
-    const trimmed = newCityName.trim();
-    if (!trimmed) return;
+  // Load data when date changes
+  const loadDate = useCallback(async (date: string) => {
+    // Cancel any in-progress processing
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
 
-    await fetch("/api/cities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: trimmed }),
-    });
-    setNewCityName("");
-    fetchCities();
-  }
+    setThermals([]);
+    setIsProcessing(false);
+    setProcessedAt(null);
+    setNewFlightsAvailable(0);
 
-  async function handleDelete(id: string) {
-    await fetch(`/api/cities/${id}`, { method: "DELETE" });
-    setWeather((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-    fetchCities();
-  }
-
-  function startEdit(city: City) {
-    setEditingId(city.id);
-    setEditName(city.name);
-  }
-
-  async function handleSaveEdit(id: string) {
-    const trimmed = editName.trim();
-    if (!trimmed) return;
-
-    await fetch(`/api/cities/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: trimmed }),
-    });
-    setEditingId(null);
-    setEditName("");
-    fetchCities();
-  }
-
-  function handleCancelEdit() {
-    setEditingId(null);
-    setEditName("");
-  }
-
-  async function fetchWeather(id: string) {
-    setWeatherLoading((prev) => ({ ...prev, [id]: true }));
     try {
-      const res = await fetch(`/api/weather/${id}`);
-      const data = await res.json();
-      if (data.current_weather) {
-        setWeather((prev) => ({ ...prev, [id]: data.current_weather }));
+      // Check for cached thermals
+      const thermalsRes = await fetch(
+        `/api/thermals?source=bga&date=${date}`,
+        { signal },
+      );
+      const thermalsData = await thermalsRes.json();
+
+      if (thermalsData.status === "ready") {
+        setThermals(thermalsData.thermals);
+        setFlightCount(thermalsData.metadata.flightCount);
+        setProcessedAt(thermalsData.metadata.processedAt);
+
+        // Background check for new flights
+        checkForNewFlights(date, thermalsData.metadata.flightCount, signal);
+        return;
       }
-    } catch (err) {
-      console.error("Failed to fetch weather:", err);
-    } finally {
-      setWeatherLoading((prev) => ({ ...prev, [id]: false }));
+
+      // Need to fetch flights and process
+      const flightsRes = await fetch(
+        `/api/flights?source=bga&date=${date}`,
+        { signal },
+      );
+      const flightsData = await flightsRes.json();
+
+      if (!flightsData.flights || flightsData.flights.length === 0) {
+        setFlightCount(0);
+        return;
+      }
+
+      setFlightCount(flightsData.totalCount);
+
+      // Start batch processing
+      const flightsWithTrack: FlightInfo[] = flightsData.flights.filter(
+        (f: FlightInfo) => f.hasTrackData,
+      );
+      await processBatches(date, flightsWithTrack, signal);
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDate(selectedDate);
+  }, [selectedDate, loadDate]);
+
+  async function checkForNewFlights(
+    date: string,
+    cachedCount: number,
+    signal: AbortSignal,
+  ) {
+    try {
+      const res = await fetch(`/api/flights?source=bga&date=${date}`, {
+        signal,
+      });
+      const data = await res.json();
+      const diff = data.totalCount - cachedCount;
+      if (diff > 0) setNewFlightsAvailable(diff);
+    } catch {
+      // ignore
     }
   }
 
+  async function processBatches(
+    date: string,
+    flights: FlightInfo[],
+    signal: AbortSignal,
+  ) {
+    setIsProcessing(true);
+    setTotalFlights(flights.length);
+    setCurrentFlight(0);
+    setThermalsFound(0);
+
+    const allThermals: ThermalData[] = [];
+
+    for (let i = 0; i < flights.length; i += BATCH_SIZE) {
+      if (signal.aborted) break;
+
+      const batch = flights.slice(i, i + BATCH_SIZE);
+      const rawIds = batch.map((f) => f.id.replace("bga:", ""));
+
+      try {
+        const res = await fetch("/api/thermals/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source: "bga",
+            date,
+            flightIds: rawIds,
+          }),
+          signal,
+        });
+
+        const data = await res.json();
+        allThermals.push(...data.thermals);
+        setThermals([...allThermals]);
+        setCurrentFlight(Math.min(i + BATCH_SIZE, flights.length));
+        setThermalsFound(data.runningTotals.totalThermals);
+      } catch (e) {
+        if ((e as Error).name === "AbortError") break;
+        console.error("Batch processing error:", e);
+      }
+    }
+
+    setIsProcessing(false);
+    setProcessedAt(new Date().toISOString());
+    // Refresh processed dates
+    fetch("/api/processed-dates?source=bga")
+      .then((r) => r.json())
+      .then((data) =>
+        setProcessedDates(data.dates.map((d: { date: string }) => d.date)),
+      )
+      .catch(console.error);
+  }
+
+  function handleRefresh() {
+    setNewFlightsAvailable(0);
+    // Force re-process by loading the date again
+    loadDate(selectedDate);
+  }
+
+  // Compute stats from thermals
+  const filteredThermals = thermals.filter(
+    (t) => t.avgClimbRate >= minClimbRate,
+  );
+  const avgClimb =
+    filteredThermals.length > 0
+      ? filteredThermals.reduce((s, t) => s + t.avgClimbRate, 0) /
+        filteredThermals.length
+      : 0;
+  const bestClimb =
+    filteredThermals.length > 0
+      ? Math.max(...filteredThermals.map((t) => t.avgClimbRate))
+      : 0;
+  const maxAltGain =
+    filteredThermals.length > 0
+      ? Math.max(...filteredThermals.map((t) => t.altGain))
+      : 0;
+  const highestTop =
+    filteredThermals.length > 0
+      ? Math.max(...filteredThermals.map((t) => t.topAlt))
+      : 0;
+
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="mx-auto max-w-xl">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Weather Bookmarks
-        </h1>
+    <main className="relative h-screen w-screen overflow-hidden">
+      <MapView thermals={thermals} minClimbRate={minClimbRate} />
 
-        <form onSubmit={handleAdd} className="flex gap-2 mb-8">
-          <input
-            type="text"
-            value={newCityName}
-            onChange={(e) => setNewCityName(e.target.value)}
-            placeholder="Add a city..."
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Add
-          </button>
-        </form>
+      {/* Top-left: date picker + controls */}
+      <div className="absolute left-3 top-3 z-[1000] flex flex-col gap-2">
+        <DatePicker
+          selectedDate={selectedDate}
+          processedDates={processedDates}
+          onDateChange={setSelectedDate}
+        />
+        <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} />
+      </div>
 
-        {loading ? (
-          <p className="text-gray-500 text-sm">Loading cities...</p>
-        ) : cities.length === 0 ? (
-          <p className="text-gray-500 text-sm">
-            No bookmarked cities yet. Add one above.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {cities.map((city) => (
-              <li
-                key={city.id}
-                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  {editingId === city.id ? (
-                    <div className="flex flex-1 items-center gap-2">
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveEdit(city.id);
-                          if (e.key === "Escape") handleCancelEdit();
-                        }}
-                        className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        autoFocus
-                      />
-                      <button
-                        onClick={() => handleSaveEdit(city.id)}
-                        className="rounded px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 truncate">
-                          {city.name}
-                        </p>
-                        {city.latitude != null && city.longitude != null && (
-                          <p className="text-xs text-gray-400">
-                            {city.latitude.toFixed(2)},{" "}
-                            {city.longitude.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => fetchWeather(city.id)}
-                          disabled={weatherLoading[city.id]}
-                          className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
-                        >
-                          {weatherLoading[city.id] ? "..." : "Weather"}
-                        </button>
-                        <button
-                          onClick={() => startEdit(city)}
-                          className="rounded px-2 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(city.id)}
-                          className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+      {/* Bottom-left: stats */}
+      <div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-2">
+        <StatsPanel
+          flightsAnalysed={flightCount}
+          thermalsDetected={filteredThermals.length}
+          avgClimbRate={avgClimb}
+          bestClimbRate={bestClimb}
+          maxAltGain={Math.round(maxAltGain)}
+          highestTop={Math.round(highestTop)}
+          isCollapsed={statsCollapsed}
+          onToggleCollapse={() => setStatsCollapsed((v) => !v)}
+        />
+        <CacheFreshness
+          processedAt={processedAt}
+          flightCount={flightCount}
+          newFlightsAvailable={newFlightsAvailable}
+          onRefresh={handleRefresh}
+        />
+      </div>
 
-                {weather[city.id] && (
-                  <div className="mt-3 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900">
-                    <span className="font-medium">
-                      {weather[city.id].temperature}°C
-                    </span>{" "}
-                    &middot; {getWeatherLabel(weather[city.id].weathercode)}{" "}
-                    &middot; Wind: {weather[city.id].windspeed} km/h
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* Top-centre: processing progress */}
+      <div className="absolute left-1/2 top-3 z-[1000] -translate-x-1/2">
+        <ProcessingProgress
+          currentFlight={currentFlight}
+          totalFlights={totalFlights}
+          thermalsFound={thermalsFound}
+          isProcessing={isProcessing}
+        />
       </div>
     </main>
   );

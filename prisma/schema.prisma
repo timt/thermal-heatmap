@@ -7,11 +7,61 @@ datasource db {
   provider = "postgresql"
 }
 
-model City {
-  id        Int      @id @default(autoincrement())
-  name      String
-  latitude  Float?
-  longitude Float?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model ProcessedDate {
+  id              Int      @id @default(autoincrement())
+  source          String   // "bga" or "weglide"
+  date            DateTime @db.Date
+  flightCount     Int
+  thermalCount    Int      @default(0)
+  algorithmVersion String
+  processedAt     DateTime @default(now())
+  flights         Flight[]
+
+  @@unique([source, date])
+  @@index([source, date])
+  @@map("processed_dates")
+}
+
+model Flight {
+  id              Int      @id @default(autoincrement())
+  sourceId        String   // e.g. "bga:128982"
+  source          String
+  date            DateTime @db.Date
+  pilot           String
+  club            String
+  aircraft        String
+  registration    String?
+  launchSite      String
+  launchLat       Float
+  launchLon       Float
+  distance        Float    // km
+  speed           Float?   // km/h
+  points          Int?
+  sourceUrl       String
+  hasTrackData    Boolean
+  processed       Boolean  @default(false)
+  processedDateId Int?
+  processedDate   ProcessedDate? @relation(fields: [processedDateId], references: [id])
+  thermals        Thermal[]
+
+  @@unique([sourceId])
+  @@index([source, date])
+  @@map("flights")
+}
+
+model Thermal {
+  id           Int      @id @default(autoincrement())
+  lat          Float
+  lon          Float
+  avgClimbRate Float    // m/s
+  altGain      Float    // metres
+  baseAlt      Float    // metres
+  topAlt       Float    // metres
+  entryTime    DateTime
+  exitTime     DateTime
+  flightId     Int
+  flight       Flight   @relation(fields: [flightId], references: [id], onDelete: Cascade)
+
+  @@index([flightId])
+  @@map("thermals")
 }
