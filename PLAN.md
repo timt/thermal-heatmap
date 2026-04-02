@@ -401,6 +401,19 @@ Acceptance criteria:
 
 Note: Only pursue if Leaflet performance becomes a bottleneck with date-range aggregation (5000+ thermals).
 
+**S35b: Mobile-optimised layout** *(moved from Epic 12)*
+
+### Epic 13: Custom Domain
+
+**S39: Map custom domain thermal.gliderzone.com**
+> As a user, I want to access the app via thermal.gliderzone.com, so that it has a memorable, community-appropriate URL.
+
+Acceptance criteria:
+- Add `thermal.gliderzone.com` as a custom domain in Vercel
+- Configure DNS (CNAME or A record) on gliderzone.com
+- Verify SSL certificate is provisioned
+- Redirect or alias `thermal-heatmap.vercel.app` to the custom domain
+
 **S35: Mobile-optimised layout**
 > As a pilot at the airfield on my phone, I want a mobile-friendly layout, so that I can use the app without a laptop.
 
@@ -412,25 +425,26 @@ Acceptance criteria:
 ## 5. Suggested Implementation Order
 
 ```
-Phase 1 — MVP
-  S18  Remove Weather Bookmarks code
-  S1   Data source abstraction types
-  S2   IGC file parser
-  S3   Thermal detection algorithm
-  S6   Database schema
-  S4   BGA Ladder provider — flight list
-  S5   BGA Ladder provider — track data
-  S9   Backend API — flights endpoint
-  S7   Backend API — thermals endpoint
-  S8   Backend API — batch processing endpoint
-  S10  Base map with Leaflet
-  S11  Heatmap layer
-  S12  Thermal markers
-  S13  Statistics panel
-  S14  Date picker
-  S15  Min climb rate slider
-  S16  Processing progress indicator
-  S17  Cache freshness indicator
+Phase 1 — MVP ✅ (2026-04-02)
+  ✅ S18  Remove Weather Bookmarks code
+  ✅ S1   Data source abstraction types
+  ✅ S2   IGC file parser
+  ✅ S3   Thermal detection algorithm
+  ✅ S6   Database schema
+  ✅ S4   BGA Ladder provider — flight list
+  ✅ S5   BGA Ladder provider — track data
+  ✅ S9   Backend API — flights endpoint
+  ✅ S7   Backend API — thermals endpoint
+  ✅ S8   Backend API — batch processing endpoint
+  ✅ S10  Base map with Leaflet
+  ✅ S11  Heatmap layer
+  ✅ S12  Thermal markers
+  ✅ S13  Statistics panel
+  ✅ S14  Date picker
+  ✅ S15  Min climb rate slider
+  ✅ S16  Processing progress indicator
+  ✅ S17  Cache freshness indicator
+  ✅ CI/CD — GitHub Actions pipeline (migrate + Vercel deploy on push)
 
 Phase 2 — WeGlide & Source Selection
   S19  WeGlide provider — flight list
@@ -462,7 +476,10 @@ Phase 7 — User Accounts & Monetisation
   S37  User profile & linked accounts
   S38  Usage analytics & community features
 
-Phase 8 — Scale & Polish
+Phase 8 — Custom Domain
+  S39  Map thermal.gliderzone.com to Vercel
+
+Phase 9 — Scale & Polish
   S33  Comparison mode
   S34  Mapbox GL migration (if needed)
 ```
