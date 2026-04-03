@@ -26,10 +26,19 @@ export interface ThermalData {
   exitTime: string;
 }
 
+export interface MapPosition {
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
 export interface MapViewProps {
   thermals: ThermalData[];
   minClimbRate: number;
   units: UnitSystem;
+  initialCenter?: [number, number];
+  initialZoom?: number;
+  onViewChange?: (position: MapPosition) => void;
 }
 
 function getMarkerColour(climbRate: number): string {
@@ -101,15 +110,36 @@ function HeatmapLayer({
   return null;
 }
 
-export default function MapView({ thermals, minClimbRate, units }: MapViewProps) {
+function MapStateTracker({ onViewChange }: { onViewChange: (position: MapPosition) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    function handleMoveEnd() {
+      const center = map.getCenter();
+      onViewChange({
+        lat: parseFloat(center.lat.toFixed(4)),
+        lng: parseFloat(center.lng.toFixed(4)),
+        zoom: map.getZoom(),
+      });
+    }
+
+    map.on("moveend", handleMoveEnd);
+    return () => { map.off("moveend", handleMoveEnd); };
+  }, [map, onViewChange]);
+
+  return null;
+}
+
+export default function MapView({ thermals, minClimbRate, units, initialCenter, initialZoom, onViewChange }: MapViewProps) {
   const filtered = thermals.filter((t) => t.avgClimbRate >= minClimbRate);
 
   return (
     <MapContainer
-      center={[52.5, -1.5]}
-      zoom={6}
+      center={initialCenter ?? [52.5, -1.5]}
+      zoom={initialZoom ?? 6}
       style={{ height: "100%", width: "100%" }}
     >
+      {onViewChange && <MapStateTracker onViewChange={onViewChange} />}
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Dark">
           <TileLayer

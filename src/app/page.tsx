@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ThermalData } from "@/components/MapView";
+import type { ThermalData, MapPosition } from "@/components/MapView";
 import { DatePicker } from "@/components/DatePicker";
 import { ClimbRateSlider } from "@/components/ClimbRateSlider";
 import { SourceSelector } from "@/components/SourceSelector";
@@ -10,6 +10,7 @@ import { StatsPanel } from "@/components/StatsPanel";
 import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { CacheFreshness } from "@/components/CacheFreshness";
 import { UnitToggle } from "@/components/UnitToggle";
+import { ShareButton } from "@/components/ShareButton";
 import type { UnitSystem } from "@/lib/units";
 import { isRecheckDue } from "@/lib/freshness";
 
@@ -28,29 +29,76 @@ interface FlightInfo {
   hasTrackData: boolean;
 }
 
+function getUrlParams(): URLSearchParams | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search);
+}
+
 function getStoredSource(): string {
   if (typeof window === "undefined") return "bga";
-  return localStorage.getItem("thermal-source") ?? "bga";
+  const url = getUrlParams();
+  return url?.get("source") ?? localStorage.getItem("thermal-source") ?? "bga";
 }
 
 function getStoredRegion(): string {
   if (typeof window === "undefined") return "GB";
-  return localStorage.getItem("thermal-region") ?? "GB";
+  const url = getUrlParams();
+  return url?.get("region") ?? localStorage.getItem("thermal-region") ?? "GB";
 }
 
 function getStoredUnits(): UnitSystem {
   if (typeof window === "undefined") return "uk";
+  const url = getUrlParams();
+  const fromUrl = url?.get("units");
+  if (fromUrl === "metric" || fromUrl === "uk") return fromUrl;
   return (localStorage.getItem("thermal-units") as UnitSystem) ?? "uk";
+}
+
+function getInitialDate(): string {
+  if (typeof window === "undefined") return yesterday();
+  const url = getUrlParams();
+  const dateParam = url?.get("date");
+  if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return dateParam;
+  return yesterday();
+}
+
+function getInitialMinClimb(): number {
+  if (typeof window === "undefined") return 0.5;
+  const url = getUrlParams();
+  const param = url?.get("minClimb");
+  if (param) {
+    const parsed = parseFloat(param);
+    if (!isNaN(parsed) && parsed >= 0) return parsed;
+  }
+  return 0.5;
+}
+
+function getInitialMapPosition(): { center: [number, number]; zoom: number } | null {
+  if (typeof window === "undefined") return null;
+  const url = getUrlParams();
+  const lat = url?.get("lat");
+  const lng = url?.get("lng");
+  const zoom = url?.get("zoom");
+  if (lat && lng && zoom) {
+    const parsed = { lat: parseFloat(lat), lng: parseFloat(lng), zoom: parseInt(zoom, 10) };
+    if (!isNaN(parsed.lat) && !isNaN(parsed.lng) && !isNaN(parsed.zoom)) {
+      return { center: [parsed.lat, parsed.lng], zoom: parsed.zoom };
+    }
+  }
+  return null;
 }
 
 export default function Home() {
   const [source, setSource] = useState(getStoredSource);
   const [region, setRegion] = useState(getStoredRegion);
   const [units, setUnits] = useState<UnitSystem>(getStoredUnits);
-  const [selectedDate, setSelectedDate] = useState(yesterday);
+  const [selectedDate, setSelectedDate] = useState(getInitialDate);
   const [processedDates, setProcessedDates] = useState<string[]>([]);
   const [activityDates, setActivityDates] = useState<string[]>([]);
-  const [minClimbRate, setMinClimbRate] = useState(0.5);
+  const [minClimbRate, setMinClimbRate] = useState(getInitialMinClimb);
+  const [initialMapPos] = useState(getInitialMapPosition);
+  const mapPositionRef = useRef<MapPosition | null>(null);
+  const hasUrlDate = useRef(typeof window !== "undefined" && new URLSearchParams(window.location.search).has("date"));
   const [thermals, setThermals] = useState<ThermalData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentFlight, setCurrentFlight] = useState(0);
@@ -78,6 +126,48 @@ export default function Home() {
     localStorage.setItem("thermal-units", newUnits);
   }
 
+  const handleMapViewChange = useCallback((position: MapPosition) => {
+    mapPositionRef.current = position;
+  }, []);
+
+  const buildShareUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set("source", source);
+    params.set("date", selectedDate);
+    params.set("region", region);
+    params.set("minClimb", String(minClimbRate));
+    params.set("units", units);
+    const pos = mapPositionRef.current;
+    if (pos) {
+      params.set("lat", String(pos.lat));
+      params.set("lng", String(pos.lng));
+      params.set("zoom", String(pos.zoom));
+    }
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  }, [source, selectedDate, region, minClimbRate, units]);
+
+  // Sync shareable state to URL (debounced)
+  const urlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (urlTimerRef.current) clearTimeout(urlTimerRef.current);
+    urlTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      params.set("source", source);
+      params.set("date", selectedDate);
+      params.set("region", region);
+      params.set("minClimb", String(minClimbRate));
+      params.set("units", units);
+      const pos = mapPositionRef.current;
+      if (pos) {
+        params.set("lat", String(pos.lat));
+        params.set("lng", String(pos.lng));
+        params.set("zoom", String(pos.zoom));
+      }
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    }, 500);
+    return () => { if (urlTimerRef.current) clearTimeout(urlTimerRef.current); };
+  }, [source, selectedDate, region, minClimbRate, units]);
+
   // Fetch processed dates and activity calendar when source changes
   useEffect(() => {
     fetch(`/api/processed-dates?source=${source}`)
@@ -85,9 +175,10 @@ export default function Home() {
       .then((data) => {
         const dates = data.dates.map((d: { date: string }) => d.date);
         setProcessedDates(dates);
-        if (dates.length > 0) {
+        if (dates.length > 0 && !hasUrlDate.current) {
           setSelectedDate(dates[0]);
         }
+        hasUrlDate.current = false;
       })
       .catch(console.error);
 
@@ -279,7 +370,14 @@ export default function Home() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
-      <MapView thermals={thermals} minClimbRate={minClimbRate} units={units} />
+      <MapView
+        thermals={thermals}
+        minClimbRate={minClimbRate}
+        units={units}
+        initialCenter={initialMapPos?.center}
+        initialZoom={initialMapPos?.zoom}
+        onViewChange={handleMapViewChange}
+      />
 
       {/* Top-left: source selector, date picker + controls */}
       <div className="absolute left-3 top-3 z-[1000] flex flex-col gap-2">
@@ -297,6 +395,7 @@ export default function Home() {
         />
         <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} units={units} />
         <UnitToggle units={units} onChange={handleUnitsChange} />
+        <ShareButton buildUrl={buildShareUrl} />
       </div>
 
       {/* Bottom-left: stats */}
