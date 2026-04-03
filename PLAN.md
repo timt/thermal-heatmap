@@ -446,12 +446,12 @@ Phase 1 — MVP ✅ (2026-04-02)
   ✅ S17  Cache freshness indicator
   ✅ CI/CD — GitHub Actions pipeline (migrate + Vercel deploy on push)
 
-Phase 2 — WeGlide & Source Selection
-  S19  WeGlide provider — flight list
-  S20  WeGlide provider — track data
-  S21  WeGlide activity calendar
-  S22  Data source selector
-  S23  Region filter
+Phase 2 — WeGlide & Source Selection ✅ (2026-04-03)
+  ✅ S19  WeGlide provider — flight list
+  ✅ S20  WeGlide provider — track data (via cdn.weglide.org/v1/flightdata/{id})
+  ✅ S21  WeGlide activity calendar
+  ✅ S22  Data source selector
+  ✅ S23  Region filter
 
 Phase 3 — Flight Overlay
   S24  Flight list panel
@@ -499,3 +499,4 @@ Phase 9 — Scale & Polish
 - **BGA altitude**: Launchpoint altitude is in feet — convert to metres
 - **Algorithm versioning**: Store version alongside cached results; auto-reprocess if version mismatch
 - **Mapbox future migration**: If Leaflet performance degrades with 5000+ thermals (likely in date-range mode), Mapbox GL JS with its built-in heatmap layer is the documented upgrade path
+- **WeGlide undocumented endpoints**: The documented `/v1/flight/{id}` returns 404. Discovered via Playwright interception: `cdn.weglide.org/v1/flightdata/{id}` serves track data (geom + time/alt arrays, ~3000 points at ~14s intervals); `api.weglide.org/v1/flightdetail/{id}` serves flight detail including `igc_file` path. Both require browser-like headers (Accept, Referer, Origin, User-Agent).
