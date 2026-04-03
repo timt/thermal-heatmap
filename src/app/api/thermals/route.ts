@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
           flightCount: processedDate.flightCount,
           thermalCount: processedDate.thermalCount,
           processedAt: processedDate.processedAt.toISOString(),
+          lastCheckedAt: processedDate.lastCheckedAt?.toISOString() ?? null,
           algorithmVersion: processedDate.algorithmVersion,
         },
       });

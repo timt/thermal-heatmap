@@ -8,13 +8,14 @@ datasource db {
 }
 
 model ProcessedDate {
-  id              Int      @id @default(autoincrement())
-  source          String   // "bga" or "weglide"
-  date            DateTime @db.Date
+  id              Int       @id @default(autoincrement())
+  source          String    // "bga" or "weglide"
+  date            DateTime  @db.Date
   flightCount     Int
-  thermalCount    Int      @default(0)
+  thermalCount    Int       @default(0)
   algorithmVersion String
-  processedAt     DateTime @default(now())
+  processedAt     DateTime  @default(now())
+  lastCheckedAt   DateTime?
   flights         Flight[]
 
   @@unique([source, date])

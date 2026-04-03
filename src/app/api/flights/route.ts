@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
         flightCount: flights.length,
         thermalCount: 0,
         algorithmVersion: "none",
+        lastCheckedAt: new Date(),
       },
     });
 

@@ -11,6 +11,7 @@ import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { CacheFreshness } from "@/components/CacheFreshness";
 import { UnitToggle } from "@/components/UnitToggle";
 import type { UnitSystem } from "@/lib/units";
+import { isRecheckDue } from "@/lib/freshness";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -131,8 +132,11 @@ export default function Home() {
         setFlightCount(thermalsData.metadata.flightCount);
         setProcessedAt(thermalsData.metadata.processedAt);
 
-        // Background check for new flights
-        checkForNewFlights(date, currentSource, thermalsData.metadata.flightCount, signal);
+        // Background check for new flights (respects age-based backoff)
+        const { lastCheckedAt } = thermalsData.metadata;
+        if (isRecheckDue(date, lastCheckedAt)) {
+          checkAndRefresh(date, currentSource, currentRegion, signal);
+        }
         return;
       }
 
@@ -171,21 +175,24 @@ export default function Home() {
     loadDate(selectedDate, source, region);
   }, [selectedDate, source, region, loadDate]);
 
-  async function checkForNewFlights(
+  async function checkAndRefresh(
     date: string,
     currentSource: string,
-    cachedCount: number,
+    currentRegion: string,
     signal: AbortSignal,
   ) {
     try {
-      const res = await fetch(`/api/flights?source=${currentSource}&date=${date}`, {
-        signal,
-      });
+      const res = await fetch(
+        `/api/thermals/check?source=${currentSource}&date=${date}`,
+        { signal },
+      );
       const data = await res.json();
-      const diff = data.totalCount - cachedCount;
-      if (diff > 0) setNewFlightsAvailable(diff);
+      if (data.newFlights > 0) {
+        // Automatically re-fetch and re-process in the background
+        loadDate(date, currentSource, currentRegion);
+      }
     } catch {
-      // ignore
+      // ignore — background check failure is not critical
     }
   }
 
