@@ -117,6 +117,12 @@ export default function MapView({ thermals, minClimbRate, units }: MapViewProps)
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
         </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Light">
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          />
+        </LayersControl.BaseLayer>
         <LayersControl.BaseLayer name="Terrain">
           <TileLayer
             attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
@@ -129,6 +135,12 @@ export default function MapView({ thermals, minClimbRate, units }: MapViewProps)
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           />
         </LayersControl.BaseLayer>
+        <LayersControl.Overlay name="Labels">
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+          />
+        </LayersControl.Overlay>
       </LayersControl>
 
       <HeatmapLayer thermals={thermals} minClimbRate={minClimbRate} />
