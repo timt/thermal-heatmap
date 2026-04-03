@@ -12,6 +12,8 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
+import type { UnitSystem } from "@/lib/units";
+import { formatClimbRate, formatAltitude } from "@/lib/units";
 
 export interface ThermalData {
   lat: number;
@@ -27,6 +29,7 @@ export interface ThermalData {
 export interface MapViewProps {
   thermals: ThermalData[];
   minClimbRate: number;
+  units: UnitSystem;
 }
 
 function getMarkerColour(climbRate: number): string {
@@ -98,7 +101,7 @@ function HeatmapLayer({
   return null;
 }
 
-export default function MapView({ thermals, minClimbRate }: MapViewProps) {
+export default function MapView({ thermals, minClimbRate, units }: MapViewProps) {
   const filtered = thermals.filter((t) => t.avgClimbRate >= minClimbRate);
 
   return (
@@ -144,13 +147,13 @@ export default function MapView({ thermals, minClimbRate }: MapViewProps) {
         >
           <Popup>
             <div>
-              <strong>{thermal.avgClimbRate.toFixed(1)} m/s</strong>
+              <strong>{formatClimbRate(thermal.avgClimbRate, units)}</strong>
               <br />
-              Altitude gain: {thermal.altGain} m
+              Altitude gain: {formatAltitude(thermal.altGain, units)}
               <br />
-              Base: {thermal.baseAlt} m
+              Base: {formatAltitude(thermal.baseAlt, units)}
               <br />
-              Top: {thermal.topAlt} m
+              Top: {formatAltitude(thermal.topAlt, units)}
               <br />
               Time: {formatTime(thermal.entryTime)}
             </div>

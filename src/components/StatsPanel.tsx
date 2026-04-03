@@ -1,14 +1,18 @@
 "use client";
 
+import type { UnitSystem } from "@/lib/units";
+import { formatClimbRate, formatAltitude } from "@/lib/units";
+
 interface StatsPanelProps {
-  flightsAnalysed: number;
-  thermalsDetected: number;
-  avgClimbRate: number;
-  bestClimbRate: number;
-  maxAltGain: number;
-  highestTop: number;
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
+  readonly flightsAnalysed: number;
+  readonly thermalsDetected: number;
+  readonly avgClimbRate: number;
+  readonly bestClimbRate: number;
+  readonly maxAltGain: number;
+  readonly highestTop: number;
+  readonly isCollapsed: boolean;
+  readonly onToggleCollapse: () => void;
+  readonly units: UnitSystem;
 }
 
 function StatRow({ label, value }: { readonly label: string; readonly value: string }) {
@@ -29,6 +33,7 @@ export function StatsPanel({
   highestTop,
   isCollapsed,
   onToggleCollapse,
+  units,
 }: StatsPanelProps) {
   return (
     <div className="rounded-xl bg-gray-900/80 p-3 text-white shadow-lg backdrop-blur-md">
@@ -40,7 +45,7 @@ export function StatsPanel({
         {isCollapsed ? (
           <span>
             {flightsAnalysed} flights, {thermalsDetected} thermals, best{" "}
-            {bestClimbRate.toFixed(1)} m/s
+            {formatClimbRate(bestClimbRate, units)}
           </span>
         ) : (
           <span className="font-semibold">Statistics</span>
@@ -51,10 +56,10 @@ export function StatsPanel({
         <div className="mt-2 flex flex-col gap-1">
           <StatRow label="Flights analysed" value={String(flightsAnalysed)} />
           <StatRow label="Thermals detected" value={String(thermalsDetected)} />
-          <StatRow label="Avg climb rate" value={`${avgClimbRate.toFixed(1)} m/s`} />
-          <StatRow label="Best climb rate" value={`${bestClimbRate.toFixed(1)} m/s`} />
-          <StatRow label="Max altitude gain" value={`${maxAltGain.toLocaleString()} m`} />
-          <StatRow label="Highest top" value={`${highestTop.toLocaleString()} m`} />
+          <StatRow label="Avg climb rate" value={formatClimbRate(avgClimbRate, units)} />
+          <StatRow label="Best climb rate" value={formatClimbRate(bestClimbRate, units)} />
+          <StatRow label="Max altitude gain" value={formatAltitude(maxAltGain, units)} />
+          <StatRow label="Highest top" value={formatAltitude(highestTop, units)} />
         </div>
       )}
     </div>

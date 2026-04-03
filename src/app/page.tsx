@@ -9,6 +9,8 @@ import { SourceSelector } from "@/components/SourceSelector";
 import { StatsPanel } from "@/components/StatsPanel";
 import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { CacheFreshness } from "@/components/CacheFreshness";
+import { UnitToggle } from "@/components/UnitToggle";
+import type { UnitSystem } from "@/lib/units";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -35,9 +37,15 @@ function getStoredRegion(): string {
   return localStorage.getItem("thermal-region") ?? "GB";
 }
 
+function getStoredUnits(): UnitSystem {
+  if (typeof window === "undefined") return "uk";
+  return (localStorage.getItem("thermal-units") as UnitSystem) ?? "uk";
+}
+
 export default function Home() {
   const [source, setSource] = useState(getStoredSource);
   const [region, setRegion] = useState(getStoredRegion);
+  const [units, setUnits] = useState<UnitSystem>(getStoredUnits);
   const [selectedDate, setSelectedDate] = useState(yesterday);
   const [processedDates, setProcessedDates] = useState<string[]>([]);
   const [activityDates, setActivityDates] = useState<string[]>([]);
@@ -62,6 +70,11 @@ export default function Home() {
   function handleRegionChange(newRegion: string) {
     setRegion(newRegion);
     localStorage.setItem("thermal-region", newRegion);
+  }
+
+  function handleUnitsChange(newUnits: UnitSystem) {
+    setUnits(newUnits);
+    localStorage.setItem("thermal-units", newUnits);
   }
 
   // Fetch processed dates and activity calendar when source changes
@@ -259,7 +272,7 @@ export default function Home() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden">
-      <MapView thermals={thermals} minClimbRate={minClimbRate} />
+      <MapView thermals={thermals} minClimbRate={minClimbRate} units={units} />
 
       {/* Top-left: source selector, date picker + controls */}
       <div className="absolute left-3 top-3 z-[1000] flex flex-col gap-2">
@@ -275,7 +288,8 @@ export default function Home() {
           activityDates={activityDates}
           onDateChange={setSelectedDate}
         />
-        <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} />
+        <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} units={units} />
+        <UnitToggle units={units} onChange={handleUnitsChange} />
       </div>
 
       {/* Bottom-left: stats */}
@@ -289,6 +303,7 @@ export default function Home() {
           highestTop={Math.round(highestTop)}
           isCollapsed={statsCollapsed}
           onToggleCollapse={() => setStatsCollapsed((v) => !v)}
+          units={units}
         />
         <CacheFreshness
           processedAt={processedAt}
