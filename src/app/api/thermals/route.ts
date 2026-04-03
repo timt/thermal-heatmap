@@ -1,14 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ALGORITHM_VERSION } from "@/lib/thermal-detector";
-import { BGALadderProvider } from "@/lib/bga-provider";
-
-const VALID_SOURCES = ["bga"] as const;
-type Source = (typeof VALID_SOURCES)[number];
-
-function isValidSource(s: string): s is Source {
-  return VALID_SOURCES.includes(s as Source);
-}
+import { isValidSource, VALID_SOURCES, getProvider } from "@/lib/provider-factory";
 
 function isValidDateString(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
@@ -23,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   if (!source || !isValidSource(source)) {
     return Response.json(
-      { error: "Missing or invalid 'source' parameter. Valid values: bga" },
+      { error: `Missing or invalid 'source' parameter. Valid: ${VALID_SOURCES.join(", ")}` },
       { status: 400 }
     );
   }
@@ -108,7 +101,7 @@ export async function GET(request: NextRequest) {
     }
 
     // No flights in DB — quickly fetch IDs from the provider for a count hint
-    const provider = new BGALadderProvider();
+    const provider = getProvider(source);
     const flightIds = await provider.getFlightIds(dateStr);
 
     return Response.json({

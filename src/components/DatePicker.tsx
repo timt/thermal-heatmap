@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 interface DatePickerProps {
   selectedDate: string;
   processedDates: string[];
+  activityDates?: string[];
   onDateChange: (date: string) => void;
 }
 
@@ -36,12 +37,13 @@ function getStartDayOfWeek(year: number, month: number): number {
   return (day + 6) % 7;
 }
 
-export function DatePicker({ selectedDate, processedDates, onDateChange }: DatePickerProps) {
+export function DatePicker({ selectedDate, processedDates, activityDates, onDateChange }: DatePickerProps) {
   const { year: selYear, month: selMonth } = parseISO(selectedDate);
   const [viewYear, setViewYear] = useState(selYear);
   const [viewMonth, setViewMonth] = useState(selMonth);
 
   const processedSet = useMemo(() => new Set(processedDates), [processedDates]);
+  const activitySet = useMemo(() => new Set(activityDates ?? []), [activityDates]);
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const startDay = getStartDayOfWeek(viewYear, viewMonth);
@@ -117,6 +119,7 @@ export function DatePicker({ selectedDate, processedDates, onDateChange }: DateP
           }
           const isSelected = cell.iso === selectedDate;
           const isProcessed = processedSet.has(cell.iso);
+          const hasActivity = activitySet.has(cell.iso);
 
           return (
             <button
@@ -130,10 +133,14 @@ export function DatePicker({ selectedDate, processedDates, onDateChange }: DateP
               }`}
             >
               {cell.day}
-              {isProcessed && (
+              {(isProcessed || hasActivity) && (
                 <span
                   className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                    isSelected ? "bg-white" : "bg-emerald-400"
+                    isSelected
+                      ? "bg-white"
+                      : isProcessed
+                        ? "bg-emerald-400"
+                        : "bg-amber-400"
                   }`}
                 />
               )}

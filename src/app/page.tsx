@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { ThermalData } from "@/components/MapView";
 import { DatePicker } from "@/components/DatePicker";
 import { ClimbRateSlider } from "@/components/ClimbRateSlider";
+import { SourceSelector } from "@/components/SourceSelector";
 import { StatsPanel } from "@/components/StatsPanel";
 import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { CacheFreshness } from "@/components/CacheFreshness";
@@ -24,9 +25,22 @@ interface FlightInfo {
   hasTrackData: boolean;
 }
 
+function getStoredSource(): string {
+  if (typeof window === "undefined") return "bga";
+  return localStorage.getItem("thermal-source") ?? "bga";
+}
+
+function getStoredRegion(): string {
+  if (typeof window === "undefined") return "GB";
+  return localStorage.getItem("thermal-region") ?? "GB";
+}
+
 export default function Home() {
+  const [source, setSource] = useState(getStoredSource);
+  const [region, setRegion] = useState(getStoredRegion);
   const [selectedDate, setSelectedDate] = useState(yesterday);
   const [processedDates, setProcessedDates] = useState<string[]>([]);
+  const [activityDates, setActivityDates] = useState<string[]>([]);
   const [minClimbRate, setMinClimbRate] = useState(0.5);
   const [thermals, setThermals] = useState<ThermalData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,22 +54,47 @@ export default function Home() {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  // Fetch processed dates for calendar
+  function handleSourceChange(newSource: string) {
+    setSource(newSource);
+    localStorage.setItem("thermal-source", newSource);
+  }
+
+  function handleRegionChange(newRegion: string) {
+    setRegion(newRegion);
+    localStorage.setItem("thermal-region", newRegion);
+  }
+
+  // Fetch processed dates and activity calendar when source changes
   useEffect(() => {
-    fetch("/api/processed-dates?source=bga")
+    fetch(`/api/processed-dates?source=${source}`)
       .then((r) => r.json())
       .then((data) => {
-        setProcessedDates(data.dates.map((d: { date: string }) => d.date));
-        // Default to most recent processed date if available
-        if (data.dates.length > 0) {
-          setSelectedDate(data.dates[0].date);
+        const dates = data.dates.map((d: { date: string }) => d.date);
+        setProcessedDates(dates);
+        if (dates.length > 0) {
+          setSelectedDate(dates[0]);
         }
       })
       .catch(console.error);
-  }, []);
 
-  // Load data when date changes
-  const loadDate = useCallback(async (date: string) => {
+    // Fetch activity calendar for WeGlide
+    if (source === "weglide") {
+      const season = String(new Date().getFullYear());
+      fetch(`/api/activity-calendar?source=weglide&season=${season}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setActivityDates(
+            data.dates.map((d: { date: string }) => d.date),
+          );
+        })
+        .catch(console.error);
+    } else {
+      setActivityDates([]);
+    }
+  }, [source]);
+
+  // Load data when date or source changes
+  const loadDate = useCallback(async (date: string, currentSource: string, currentRegion: string) => {
     // Cancel any in-progress processing
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
@@ -69,7 +108,7 @@ export default function Home() {
     try {
       // Check for cached thermals
       const thermalsRes = await fetch(
-        `/api/thermals?source=bga&date=${date}`,
+        `/api/thermals?source=${currentSource}&date=${date}`,
         { signal },
       );
       const thermalsData = await thermalsRes.json();
@@ -80,13 +119,14 @@ export default function Home() {
         setProcessedAt(thermalsData.metadata.processedAt);
 
         // Background check for new flights
-        checkForNewFlights(date, thermalsData.metadata.flightCount, signal);
+        checkForNewFlights(date, currentSource, thermalsData.metadata.flightCount, signal);
         return;
       }
 
       // Need to fetch flights and process
+      const regionParam = currentSource === "weglide" && currentRegion ? `&region=${currentRegion}` : "";
       const flightsRes = await fetch(
-        `/api/flights?source=bga&date=${date}`,
+        `/api/flights?source=${currentSource}&date=${date}${regionParam}`,
         { signal },
       );
       const flightsData = await flightsRes.json();
@@ -98,27 +138,34 @@ export default function Home() {
 
       setFlightCount(flightsData.totalCount);
 
-      // Start batch processing
+      // Start batch processing for flights with track data
       const flightsWithTrack: FlightInfo[] = flightsData.flights.filter(
         (f: FlightInfo) => f.hasTrackData,
       );
-      await processBatches(date, flightsWithTrack, signal);
+
+      if (flightsWithTrack.length === 0) {
+        // No track data available (e.g. WeGlide) — nothing to process
+        return;
+      }
+
+      await processBatches(date, currentSource, flightsWithTrack, signal);
     } catch (e) {
       if ((e as Error).name !== "AbortError") console.error(e);
     }
   }, []);
 
   useEffect(() => {
-    loadDate(selectedDate);
-  }, [selectedDate, loadDate]);
+    loadDate(selectedDate, source, region);
+  }, [selectedDate, source, region, loadDate]);
 
   async function checkForNewFlights(
     date: string,
+    currentSource: string,
     cachedCount: number,
     signal: AbortSignal,
   ) {
     try {
-      const res = await fetch(`/api/flights?source=bga&date=${date}`, {
+      const res = await fetch(`/api/flights?source=${currentSource}&date=${date}`, {
         signal,
       });
       const data = await res.json();
@@ -131,6 +178,7 @@ export default function Home() {
 
   async function processBatches(
     date: string,
+    currentSource: string,
     flights: FlightInfo[],
     signal: AbortSignal,
   ) {
@@ -140,19 +188,20 @@ export default function Home() {
     setThermalsFound(0);
 
     const allThermals: ThermalData[] = [];
+    const sourcePrefix = new RegExp(`^${currentSource}:`);
 
     for (let i = 0; i < flights.length; i += BATCH_SIZE) {
       if (signal.aborted) break;
 
       const batch = flights.slice(i, i + BATCH_SIZE);
-      const rawIds = batch.map((f) => f.id.replace("bga:", ""));
+      const rawIds = batch.map((f) => f.id.replace(sourcePrefix, ""));
 
       try {
         const res = await fetch("/api/thermals/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            source: "bga",
+            source: currentSource,
             date,
             flightIds: rawIds,
           }),
@@ -173,7 +222,7 @@ export default function Home() {
     setIsProcessing(false);
     setProcessedAt(new Date().toISOString());
     // Refresh processed dates
-    fetch("/api/processed-dates?source=bga")
+    fetch(`/api/processed-dates?source=${currentSource}`)
       .then((r) => r.json())
       .then((data) =>
         setProcessedDates(data.dates.map((d: { date: string }) => d.date)),
@@ -183,8 +232,7 @@ export default function Home() {
 
   function handleRefresh() {
     setNewFlightsAvailable(0);
-    // Force re-process by loading the date again
-    loadDate(selectedDate);
+    loadDate(selectedDate, source, region);
   }
 
   // Compute stats from thermals
@@ -213,11 +261,18 @@ export default function Home() {
     <main className="relative h-screen w-screen overflow-hidden">
       <MapView thermals={thermals} minClimbRate={minClimbRate} />
 
-      {/* Top-left: date picker + controls */}
+      {/* Top-left: source selector, date picker + controls */}
       <div className="absolute left-3 top-3 z-[1000] flex flex-col gap-2">
+        <SourceSelector
+          source={source}
+          onChange={handleSourceChange}
+          region={region}
+          onRegionChange={handleRegionChange}
+        />
         <DatePicker
           selectedDate={selectedDate}
           processedDates={processedDates}
+          activityDates={activityDates}
           onDateChange={setSelectedDate}
         />
         <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} />

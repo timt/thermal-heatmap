@@ -32,6 +32,7 @@ model Flight {
   aircraft        String
   registration    String?
   launchSite      String
+  region          String?  // ISO region code, e.g. "GB", "DE"
   launchLat       Float
   launchLon       Float
   distance        Float    // km

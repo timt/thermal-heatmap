@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { BGALadderProvider, fetchFlightDetails } from "@/lib/bga-provider";
+import {
+  isValidSource,
+  VALID_SOURCES,
+  getProvider,
+  fetchFlightDetailsForSource,
+} from "@/lib/provider-factory";
 import type { NormalisedFlight } from "@/lib/types";
 
 function flightFromDb(row: {
@@ -12,6 +17,7 @@ function flightFromDb(row: {
   aircraft: string;
   registration: string | null;
   launchSite: string;
+  region: string | null;
   launchLat: number;
   launchLon: number;
   distance: number;
@@ -29,6 +35,7 @@ function flightFromDb(row: {
     aircraft: row.aircraft,
     registration: row.registration,
     launchSite: row.launchSite,
+    region: row.region,
     launchLat: row.launchLat,
     launchLon: row.launchLon,
     distance: row.distance,
@@ -43,6 +50,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const source = searchParams.get("source");
   const date = searchParams.get("date");
+  const region = searchParams.get("region");
 
   if (!source || !date) {
     return NextResponse.json(
@@ -51,9 +59,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (source !== "bga") {
+  if (!isValidSource(source)) {
     return NextResponse.json(
-      { error: `Unsupported source: '${source}'. Only 'bga' is supported.` },
+      { error: `Unsupported source: '${source}'. Valid: ${VALID_SOURCES.join(", ")}` },
       { status: 400 },
     );
   }
@@ -73,7 +81,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (cached.length > 0) {
-      const flights = cached.map(flightFromDb);
+      let flights = cached.map(flightFromDb);
+      if (region) {
+        flights = flights.filter((f) => f.region === region);
+      }
       return NextResponse.json({
         flights,
         totalCount: flights.length,
@@ -81,8 +92,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch fresh data from BGA
-    const provider = new BGALadderProvider();
+    // Fetch fresh data from source provider
+    const provider = getProvider(source);
     const ids = await provider.getFlightIds(date);
 
     if (ids.length === 0) {
@@ -93,7 +104,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const flights = await fetchFlightDetails(provider, ids);
+    const flights = await fetchFlightDetailsForSource(provider, ids);
 
     // Create ProcessedDate record
     const processedDate = await prisma.processedDate.create({
@@ -120,6 +131,7 @@ export async function GET(request: NextRequest) {
             aircraft: f.aircraft,
             registration: f.registration,
             launchSite: f.launchSite,
+            region: f.region,
             launchLat: f.launchLat,
             launchLon: f.launchLon,
             distance: f.distance,
@@ -136,10 +148,14 @@ export async function GET(request: NextRequest) {
       ),
     );
 
+    const filtered = region
+      ? flights.filter((f) => f.region === region)
+      : flights;
+
     return NextResponse.json({
-      flights,
-      totalCount: flights.length,
-      withTrackData: flights.filter((f) => f.hasTrackData).length,
+      flights: filtered,
+      totalCount: filtered.length,
+      withTrackData: filtered.filter((f) => f.hasTrackData).length,
     });
   } catch (error) {
     console.error("Failed to fetch flights:", error);

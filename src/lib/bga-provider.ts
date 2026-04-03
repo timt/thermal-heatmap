@@ -49,6 +49,7 @@ export class BGALadderProvider implements FlightSourceProvider {
       aircraft: f.Glider.GliderType,
       registration: f.Glider.Registration ?? null,
       launchSite: f.Launchpoint.Site,
+      region: "GB",
       launchLat: f.Launchpoint.Latitude,
       launchLon: f.Launchpoint.Longitude,
       distance: f.ScoringDistance,

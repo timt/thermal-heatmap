@@ -8,6 +8,7 @@ export interface NormalisedFlight {
   aircraft: string;
   registration: string | null;
   launchSite: string;
+  region: string | null;
   launchLat: number;
   launchLon: number;
   distance: number;            // km

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { BGALadderProvider } from "@/lib/bga-provider";
+import { isValidSource, VALID_SOURCES, getProvider } from "@/lib/provider-factory";
 import { detectThermals, ALGORITHM_VERSION } from "@/lib/thermal-detector";
 
 export async function POST(request: Request) {
@@ -27,9 +27,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (source !== "bga") {
+  if (!isValidSource(source)) {
     return NextResponse.json(
-      { error: `Unsupported source: '${source}'. Only 'bga' is supported.` },
+      { error: `Missing or invalid source. Valid: ${VALID_SOURCES.join(", ")}` },
       { status: 400 },
     );
   }
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const provider = new BGALadderProvider();
+    const provider = getProvider(source);
     let processedCount = 0;
     let thermalsFoundCount = 0;
     const allThermals: {
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     }[] = [];
 
     for (const rawId of flightIds) {
-      const sourceId = `bga:${rawId}`;
+      const sourceId = `${source}:${rawId}`;
 
       // Check if already processed
       const flight = await prisma.flight.findUnique({
