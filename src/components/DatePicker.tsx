@@ -86,7 +86,7 @@ export function DatePicker({ selectedDate, processedDates, activityDates, onDate
         <button
           type="button"
           onClick={prevMonth}
-          className="rounded px-2 py-1 text-sm hover:bg-white/10"
+          className="min-h-[44px] rounded px-2 py-1 text-sm hover:bg-white/10 md:min-h-0"
           aria-label="Previous month"
         >
           &lsaquo;
@@ -97,7 +97,7 @@ export function DatePicker({ selectedDate, processedDates, activityDates, onDate
         <button
           type="button"
           onClick={nextMonth}
-          className="rounded px-2 py-1 text-sm hover:bg-white/10"
+          className="min-h-[44px] rounded px-2 py-1 text-sm hover:bg-white/10 md:min-h-0"
           aria-label="Next month"
         >
           &rsaquo;
@@ -126,7 +126,7 @@ export function DatePicker({ selectedDate, processedDates, activityDates, onDate
               key={cell.iso}
               type="button"
               onClick={() => onDateChange(cell.iso)}
-              className={`relative rounded py-1 transition-colors ${
+              className={`relative min-h-[44px] rounded py-1 transition-colors md:min-h-0 ${
                 isSelected
                   ? "bg-blue-500 font-bold text-white"
                   : "hover:bg-white/10"

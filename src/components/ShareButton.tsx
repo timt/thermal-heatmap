@@ -21,7 +21,7 @@ export function ShareButton({ buildUrl }: ShareButtonProps) {
     <button
       type="button"
       onClick={handleCopy}
-      className="rounded-xl bg-gray-900/80 px-3 py-2 text-xs font-semibold text-gray-300 shadow-lg backdrop-blur-md hover:text-white"
+      className="min-h-[44px] rounded-xl bg-gray-900/80 px-3 py-2 text-xs font-semibold text-gray-300 shadow-lg backdrop-blur-md hover:text-white md:min-h-0"
     >
       {copied ? "Copied!" : "Share link"}
     </button>

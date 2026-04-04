@@ -25,7 +25,7 @@ export function ClimbRateSlider({ value, onChange, units }: ClimbRateSliderProps
         step={config.step}
         value={displayValue}
         onChange={(e) => onChange(fromDisplayClimbRate(parseFloat(e.target.value), units))}
-        className="h-1.5 w-48 cursor-pointer appearance-none rounded-full bg-gray-700 accent-blue-500"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-gray-700 accent-blue-500 md:w-48"
       />
     </div>
   );

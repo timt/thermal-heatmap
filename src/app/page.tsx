@@ -110,6 +110,7 @@ export default function Home() {
   const [newFlightsAvailable, setNewFlightsAvailable] = useState(0);
   const [statsCollapsed, setStatsCollapsed] = useState(false);
   const [altProfileCollapsed, setAltProfileCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -381,8 +382,8 @@ export default function Home() {
         onViewChange={handleMapViewChange}
       />
 
-      {/* Top-left: source selector, date picker + controls */}
-      <div className="absolute left-3 top-3 z-[1000] flex flex-col gap-2">
+      {/* Desktop: top-left controls */}
+      <div className="absolute left-3 top-3 z-[1000] hidden flex-col gap-2 md:flex">
         <SourceSelector
           source={source}
           onChange={handleSourceChange}
@@ -400,8 +401,8 @@ export default function Home() {
         <ShareButton buildUrl={buildShareUrl} />
       </div>
 
-      {/* Bottom-left: stats */}
-      <div className="absolute bottom-3 left-3 z-[1000] flex flex-col gap-2">
+      {/* Desktop: bottom-left stats */}
+      <div className="absolute bottom-3 left-3 z-[1000] hidden flex-col gap-2 md:flex">
         <StatsPanel
           flightsAnalysed={flightCount}
           thermalsDetected={filteredThermals.length}
@@ -427,7 +428,7 @@ export default function Home() {
         />
       </div>
 
-      {/* Top-centre: processing progress */}
+      {/* Processing progress: top-centre on all sizes */}
       <div className="absolute left-1/2 top-3 z-[1000] -translate-x-1/2">
         <ProcessingProgress
           currentFlight={currentFlight}
@@ -436,6 +437,83 @@ export default function Home() {
           isProcessing={isProcessing}
         />
       </div>
+
+      {/* Mobile: toggle button */}
+      <button
+        type="button"
+        onClick={() => setDrawerOpen((v) => !v)}
+        className="absolute bottom-4 right-4 z-[1001] flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg active:bg-blue-700 md:hidden"
+        aria-label={drawerOpen ? "Close controls" : "Open controls"}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-5 w-5"
+        >
+          {drawerOpen ? (
+            <path d="M18 6 6 18M6 6l12 12" />
+          ) : (
+            <>
+              <path d="M12 5v14" />
+              <path d="m19 12-7-7-7 7" />
+            </>
+          )}
+        </svg>
+      </button>
+
+      {/* Mobile: bottom sheet drawer */}
+      {drawerOpen && (
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[70vh] overflow-y-auto rounded-t-2xl bg-gray-900/95 p-4 shadow-2xl backdrop-blur-md md:hidden">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-600" />
+          <div className="flex flex-col gap-3">
+            <SourceSelector
+              source={source}
+              onChange={handleSourceChange}
+              region={region}
+              onRegionChange={handleRegionChange}
+            />
+            <DatePicker
+              selectedDate={selectedDate}
+              processedDates={processedDates}
+              activityDates={activityDates}
+              onDateChange={setSelectedDate}
+            />
+            <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} units={units} />
+            <div className="flex gap-2">
+              <UnitToggle units={units} onChange={handleUnitsChange} />
+              <ShareButton buildUrl={buildShareUrl} />
+            </div>
+            <StatsPanel
+              flightsAnalysed={flightCount}
+              thermalsDetected={filteredThermals.length}
+              avgClimbRate={avgClimb}
+              bestClimbRate={bestClimb}
+              maxAltGain={Math.round(maxAltGain)}
+              highestTop={Math.round(highestTop)}
+              isCollapsed={statsCollapsed}
+              onToggleCollapse={() => setStatsCollapsed((v) => !v)}
+              units={units}
+            />
+            <AltitudeProfile
+              thermals={filteredThermals}
+              isCollapsed={altProfileCollapsed}
+              onToggleCollapse={() => setAltProfileCollapsed((v) => !v)}
+              units={units}
+            />
+            <CacheFreshness
+              processedAt={processedAt}
+              flightCount={flightCount}
+              newFlightsAvailable={newFlightsAvailable}
+              onRefresh={handleRefresh}
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

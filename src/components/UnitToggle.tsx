@@ -14,7 +14,7 @@ export function UnitToggle({ units, onChange }: UnitToggleProps) {
         <button
           type="button"
           onClick={() => onChange("uk")}
-          className={`rounded px-2 py-1 ${
+          className={`min-h-[44px] rounded px-3 py-2 md:min-h-0 md:px-2 md:py-1 ${
             units === "uk" ? "bg-blue-600 font-semibold" : "text-gray-400 hover:text-white"
           }`}
         >
@@ -23,7 +23,7 @@ export function UnitToggle({ units, onChange }: UnitToggleProps) {
         <button
           type="button"
           onClick={() => onChange("metric")}
-          className={`rounded px-2 py-1 ${
+          className={`min-h-[44px] rounded px-3 py-2 md:min-h-0 md:px-2 md:py-1 ${
             units === "metric" ? "bg-blue-600 font-semibold" : "text-gray-400 hover:text-white"
           }`}
         >
