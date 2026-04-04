@@ -372,7 +372,7 @@ export default function Home() {
       : 0;
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden">
+    <main className="relative h-dvh w-screen overflow-hidden">
       <MapView
         thermals={thermals}
         minClimbRate={minClimbRate}
@@ -429,7 +429,7 @@ export default function Home() {
       </div>
 
       {/* Processing progress: top-centre on all sizes */}
-      <div className="absolute left-1/2 top-3 z-[1000] -translate-x-1/2">
+      <div className="safe-top absolute left-1/2 top-3 z-[1000] -translate-x-1/2">
         <ProcessingProgress
           currentFlight={currentFlight}
           totalFlights={totalFlights}
@@ -442,7 +442,7 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setDrawerOpen((v) => !v)}
-        className="absolute bottom-4 right-4 z-[1001] flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg active:bg-blue-700 md:hidden"
+        className="safe-bottom absolute bottom-4 right-4 z-[1001] flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg active:bg-blue-700 md:hidden"
         aria-label={drawerOpen ? "Close controls" : "Open controls"}
       >
         <svg
@@ -468,7 +468,7 @@ export default function Home() {
 
       {/* Mobile: bottom sheet drawer */}
       {drawerOpen && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[70vh] overflow-y-auto rounded-t-2xl bg-gray-900/95 p-4 shadow-2xl backdrop-blur-md md:hidden">
+        <div className="safe-bottom absolute inset-x-0 bottom-0 z-[1000] max-h-[70dvh] overflow-y-auto rounded-t-2xl bg-gray-900/95 p-4 shadow-2xl backdrop-blur-md md:hidden">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-600" />
           <div className="flex flex-col gap-3">
             <SourceSelector
