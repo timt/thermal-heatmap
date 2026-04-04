@@ -11,6 +11,7 @@ import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { CacheFreshness } from "@/components/CacheFreshness";
 import { UnitToggle } from "@/components/UnitToggle";
 import { ShareButton } from "@/components/ShareButton";
+import { AltitudeProfile } from "@/components/AltitudeProfile";
 import type { UnitSystem } from "@/lib/units";
 import { isRecheckDue } from "@/lib/freshness";
 
@@ -108,6 +109,7 @@ export default function Home() {
   const [flightCount, setFlightCount] = useState(0);
   const [newFlightsAvailable, setNewFlightsAvailable] = useState(0);
   const [statsCollapsed, setStatsCollapsed] = useState(false);
+  const [altProfileCollapsed, setAltProfileCollapsed] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -409,6 +411,12 @@ export default function Home() {
           highestTop={Math.round(highestTop)}
           isCollapsed={statsCollapsed}
           onToggleCollapse={() => setStatsCollapsed((v) => !v)}
+          units={units}
+        />
+        <AltitudeProfile
+          thermals={filteredThermals}
+          isCollapsed={altProfileCollapsed}
+          onToggleCollapse={() => setAltProfileCollapsed((v) => !v)}
           units={units}
         />
         <CacheFreshness
