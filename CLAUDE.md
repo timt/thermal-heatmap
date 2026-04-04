@@ -11,7 +11,7 @@ Weather Bookmarks proof-of-concept — scaffolding for a full-stack Next.js app 
 - **ORM:** Prisma v7 (adapter pattern — see gotchas below)
 - **Database:** PostgreSQL (Docker locally, Supabase in production)
 - **Styling:** Tailwind CSS v4
-- **Deployment:** Vercel (CLI-deployed, not Git-connected)
+- **Deployment:** Vercel (auto-deployed via GitHub Action on push to main)
 - **External API:** Open-Meteo (geocoding + weather, no auth required)
 
 ## Local Development
@@ -27,13 +27,15 @@ Local DB connection: `postgresql://postgres:postgres@localhost:5444/thermal_heat
 
 ## Deployment
 
-Production is on Vercel with Supabase Postgres (eu-west-1).
+Production is on Vercel with Supabase Postgres (eu-west-1). Custom domain: `thermal.gliderzone.com`.
+
+Pushing to `main` triggers `.github/workflows/deploy.yml`, which runs Prisma migrations and deploys to Vercel. The workflow only triggers on changes to `src/`, `prisma/`, `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, or `.github/workflows/`. For config-only changes (e.g. `vercel.json`), deploy manually:
 
 ```bash
-npx vercel --prod             # Deploy to production
+npx vercel --prod             # Manual deploy to production
 ```
 
-To run migrations against production:
+To run migrations against production manually:
 ```bash
 DATABASE_URL="<supabase-pooler-url>" npx prisma migrate deploy
 ```
