@@ -22,10 +22,10 @@ const ICONS = [
 
 export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabel }: IconBarProps) {
   return (
-    <div className="flex h-full">
+    <div className="flex items-start gap-2 p-3">
       {/* Icon strip */}
-      <div className="flex w-12 flex-col items-center gap-1 rounded-r-xl bg-blue-600 py-3 shadow-lg">
-        {ICONS.map(({ id, icon: Icon, label }) => (
+      <div className="flex w-12 flex-col items-center gap-1 rounded-xl bg-blue-600 py-3 shadow-lg">
+        {ICONS.slice(0, 3).map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             type="button"
@@ -42,8 +42,10 @@ export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabe
           </button>
         ))}
 
-        {/* Spacer + share at bottom */}
-        <div className="flex-1" />
+        {/* Divider */}
+        <div className="mx-2 my-1 h-px w-6 bg-blue-400/40" />
+
+        {/* Share */}
         <button
           type="button"
           onClick={onShare}
@@ -51,6 +53,21 @@ export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabe
           className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-blue-500/40"
         >
           <Share2 className={`h-5 w-5 transition-colors ${shareLabel === "Copied!" ? "text-green-300" : "text-white"}`} strokeWidth={2} />
+        </button>
+
+        {/* Settings */}
+        <button
+          type="button"
+          onClick={() => onPanelChange("settings")}
+          aria-label="Settings"
+          aria-pressed={activePanel === "settings"}
+          className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+            activePanel === "settings"
+              ? "bg-blue-400/50"
+              : "hover:bg-blue-500/40"
+          }`}
+        >
+          <Settings className="h-5 w-5 text-white" strokeWidth={2} />
         </button>
       </div>
 
@@ -60,7 +77,7 @@ export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabe
           activePanel ? "w-72" : "w-0"
         }`}
       >
-        <div className="h-full w-72 overflow-y-auto rounded-r-xl bg-gray-900/95 p-3 shadow-xl backdrop-blur-md">
+        <div className="w-72 overflow-y-auto rounded-xl bg-gray-900/95 p-3 shadow-xl backdrop-blur-md">
           {activePanel && panels[activePanel]}
         </div>
       </div>

@@ -387,7 +387,7 @@ export default function Home() {
       />
 
       {/* Desktop: icon bar + collapsible panels */}
-      <div className="absolute inset-y-0 left-0 z-[1000] hidden md:flex">
+      <div className="absolute left-0 top-0 z-[1000] hidden md:flex">
         <IconBar
           activePanel={activePanel}
           onPanelChange={(id) => setActivePanel(activePanel === id ? null : id)}
