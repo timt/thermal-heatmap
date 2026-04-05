@@ -63,6 +63,20 @@ export interface LiveGliderPosition {
   readonly receiver: string;
 }
 
+/** A live thermal detected from OGN positions (API response shape) */
+export interface LiveThermalResponse {
+  readonly deviceId: string;
+  readonly lat: number;
+  readonly lon: number;
+  readonly avgClimbRate: number;
+  readonly altGain: number;
+  readonly baseAlt: number;
+  readonly topAlt: number;
+  readonly entryTime: string; // ISO 8601
+  readonly exitTime: string;  // ISO 8601
+  readonly detectedAt: string; // ISO 8601
+}
+
 /** Interface for data source providers */
 export interface FlightSourceProvider {
   name: string;

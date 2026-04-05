@@ -105,3 +105,21 @@ model OgnDevice {
   @@index([registration])
   @@map("ogn_devices")
 }
+
+model LiveThermal {
+  id           Int      @id @default(autoincrement())
+  deviceId     String
+  lat          Float
+  lon          Float
+  avgClimbRate Float
+  altGain      Float
+  baseAlt      Float
+  topAlt       Float
+  entryTime    DateTime
+  exitTime     DateTime
+  detectedAt   DateTime @default(now())
+
+  @@unique([deviceId, entryTime])
+  @@index([detectedAt])
+  @@map("live_thermals")
+}
