@@ -67,3 +67,41 @@ model Thermal {
   @@index([flightId])
   @@map("thermals")
 }
+
+model LivePosition {
+  id           Int      @id @default(autoincrement())
+  deviceId     String
+  callsign     String
+  registration String?
+  lat          Float
+  lon          Float
+  altMetres    Float
+  heading      Int
+  speedKmh     Float
+  climbRateMs  Float
+  aircraftType Int
+  receiver     String
+  icaoHex      String?
+  timestamp    DateTime
+  fetchedAt    DateTime @default(now())
+
+  @@unique([deviceId, timestamp])
+  @@index([fetchedAt])
+  @@index([aircraftType])
+  @@map("live_positions")
+}
+
+model OgnDevice {
+  deviceType    String
+  deviceId      String  @id
+  aircraftModel String
+  registration  String
+  cn            String
+  tracked       Boolean
+  identified    Boolean
+  aircraftType  Int
+  updatedAt     DateTime @default(now())
+
+  @@index([registration])
+  @@map("ogn_devices")
+}

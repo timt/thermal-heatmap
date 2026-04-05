@@ -48,6 +48,21 @@ export interface ThermalDetectionParams {
   sampleRate: number;            // Default 4 (every Nth point)
 }
 
+/** A live glider position from OGN (API response shape) */
+export interface LiveGliderPosition {
+  readonly deviceId: string;
+  readonly callsign: string;
+  readonly registration: string | null;
+  readonly lat: number;
+  readonly lon: number;
+  readonly altMetres: number;
+  readonly heading: number;
+  readonly speedKmh: number;
+  readonly climbRateMs: number;
+  readonly timestamp: string; // ISO 8601
+  readonly receiver: string;
+}
+
 /** Interface for data source providers */
 export interface FlightSourceProvider {
   name: string;
