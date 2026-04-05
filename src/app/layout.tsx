@@ -25,6 +25,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "UK Thermal Heatmap",
   description: "Visualise thermal activity across the UK from glider flight data",
+  icons: {
+    icon: "/icons/icon-32.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
