@@ -46,14 +46,21 @@ export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabe
         <div className="mx-2 my-1 h-px w-6 bg-blue-400/40" />
 
         {/* Share */}
-        <button
-          type="button"
-          onClick={onShare}
-          aria-label="Share link"
-          className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-blue-500/40"
-        >
-          <Share2 className={`h-5 w-5 transition-colors ${shareLabel === "Copied!" ? "text-green-300" : "text-white"}`} strokeWidth={2} />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={onShare}
+            aria-label="Share link"
+            className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-blue-500/40"
+          >
+            <Share2 className={`h-5 w-5 transition-colors ${shareLabel === "Copied!" ? "text-green-300" : "text-white"}`} strokeWidth={2} />
+          </button>
+          {shareLabel === "Copied!" && (
+            <div className="absolute left-12 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-gray-900/95 px-3 py-1.5 text-xs font-medium text-green-300 shadow-lg backdrop-blur-md">
+              Link copied!
+            </div>
+          )}
+        </div>
 
         {/* Settings */}
         <button
