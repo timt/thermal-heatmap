@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "public/**"
       - "src/**"
       - "prisma/**"
       - "package.json"
