@@ -12,6 +12,8 @@ import { CacheFreshness } from "@/components/CacheFreshness";
 import { UnitToggle } from "@/components/UnitToggle";
 import { ShareButton } from "@/components/ShareButton";
 import { AltitudeProfile } from "@/components/AltitudeProfile";
+import { IconBar } from "@/components/IconBar";
+import type { PanelId } from "@/components/IconBar";
 import type { UnitSystem } from "@/lib/units";
 import { isRecheckDue } from "@/lib/freshness";
 
@@ -108,6 +110,8 @@ export default function Home() {
   const [processedAt, setProcessedAt] = useState<string | null>(null);
   const [flightCount, setFlightCount] = useState(0);
   const [newFlightsAvailable, setNewFlightsAvailable] = useState(0);
+  const [activePanel, setActivePanel] = useState<PanelId | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const [statsCollapsed, setStatsCollapsed] = useState(false);
   const [altProfileCollapsed, setAltProfileCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -382,49 +386,70 @@ export default function Home() {
         onViewChange={handleMapViewChange}
       />
 
-      {/* Desktop: top-left controls */}
-      <div className="absolute left-3 top-3 z-[1000] hidden flex-col gap-2 md:flex">
-        <SourceSelector
-          source={source}
-          onChange={handleSourceChange}
-          region={region}
-          onRegionChange={handleRegionChange}
-        />
-        <DatePicker
-          selectedDate={selectedDate}
-          processedDates={processedDates}
-          activityDates={activityDates}
-          onDateChange={setSelectedDate}
-        />
-        <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} units={units} />
-        <UnitToggle units={units} onChange={handleUnitsChange} />
-        <ShareButton buildUrl={buildShareUrl} />
-      </div>
-
-      {/* Desktop: bottom-left stats */}
-      <div className="absolute bottom-3 left-3 z-[1000] hidden flex-col gap-2 md:flex">
-        <StatsPanel
-          flightsAnalysed={flightCount}
-          thermalsDetected={filteredThermals.length}
-          avgClimbRate={avgClimb}
-          bestClimbRate={bestClimb}
-          maxAltGain={Math.round(maxAltGain)}
-          highestTop={Math.round(highestTop)}
-          isCollapsed={statsCollapsed}
-          onToggleCollapse={() => setStatsCollapsed((v) => !v)}
-          units={units}
-        />
-        <AltitudeProfile
-          thermals={filteredThermals}
-          isCollapsed={altProfileCollapsed}
-          onToggleCollapse={() => setAltProfileCollapsed((v) => !v)}
-          units={units}
-        />
-        <CacheFreshness
-          processedAt={processedAt}
-          flightCount={flightCount}
-          newFlightsAvailable={newFlightsAvailable}
-          onRefresh={handleRefresh}
+      {/* Desktop: icon bar + collapsible panels */}
+      <div className="absolute inset-y-0 left-0 z-[1000] hidden md:flex">
+        <IconBar
+          activePanel={activePanel}
+          onPanelChange={(id) => setActivePanel(activePanel === id ? null : id)}
+          onShare={() => {
+            const url = buildShareUrl();
+            navigator.clipboard.writeText(url).then(() => {
+              setShareCopied(true);
+              setTimeout(() => setShareCopied(false), 2000);
+            });
+          }}
+          shareLabel={shareCopied ? "Copied!" : "Share"}
+          panels={{
+            calendar: (
+              <DatePicker
+                selectedDate={selectedDate}
+                processedDates={processedDates}
+                activityDates={activityDates}
+                onDateChange={setSelectedDate}
+              />
+            ),
+            stats: (
+              <div className="flex flex-col gap-2">
+                <StatsPanel
+                  flightsAnalysed={flightCount}
+                  thermalsDetected={filteredThermals.length}
+                  avgClimbRate={avgClimb}
+                  bestClimbRate={bestClimb}
+                  maxAltGain={Math.round(maxAltGain)}
+                  highestTop={Math.round(highestTop)}
+                  isCollapsed={false}
+                  onToggleCollapse={() => {}}
+                  units={units}
+                />
+                <CacheFreshness
+                  processedAt={processedAt}
+                  flightCount={flightCount}
+                  newFlightsAvailable={newFlightsAvailable}
+                  onRefresh={handleRefresh}
+                />
+              </div>
+            ),
+            altitude: (
+              <AltitudeProfile
+                thermals={filteredThermals}
+                isCollapsed={false}
+                onToggleCollapse={() => {}}
+                units={units}
+              />
+            ),
+            settings: (
+              <div className="flex flex-col gap-2">
+                <SourceSelector
+                  source={source}
+                  onChange={handleSourceChange}
+                  region={region}
+                  onRegionChange={handleRegionChange}
+                />
+                <ClimbRateSlider value={minClimbRate} onChange={setMinClimbRate} units={units} />
+                <UnitToggle units={units} onChange={handleUnitsChange} />
+              </div>
+            ),
+          }}
         />
       </div>
 
