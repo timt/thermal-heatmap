@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { ThermalData, MapPosition } from "@/components/MapView";
 import { DatePicker } from "@/components/DatePicker";
 import { ClimbRateSlider } from "@/components/ClimbRateSlider";
@@ -11,6 +11,7 @@ import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { CacheFreshness } from "@/components/CacheFreshness";
 import { UnitToggle } from "@/components/UnitToggle";
 import { AltitudeProfile } from "@/components/AltitudeProfile";
+import { AircraftFilter } from "@/components/AircraftFilter";
 import { IconBar } from "@/components/IconBar";
 import { MobileIconBar } from "@/components/MobileIconBar";
 import type { PanelId } from "@/components/IconBar";
@@ -110,6 +111,8 @@ export default function Home() {
   const [processedAt, setProcessedAt] = useState<string | null>(null);
   const [flightCount, setFlightCount] = useState(0);
   const [newFlightsAvailable, setNewFlightsAvailable] = useState(0);
+  const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<PanelId | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -213,6 +216,8 @@ export default function Home() {
     setIsProcessing(false);
     setProcessedAt(null);
     setNewFlightsAvailable(0);
+    setSelectedAircraft(null);
+    setSelectedRegistration(null);
 
     try {
       // Check for cached thermals
@@ -350,8 +355,19 @@ export default function Home() {
     loadDate(selectedDate, source, region);
   }
 
-  // Compute stats from thermals
-  const filteredThermals = thermals.filter(
+  // Apply aircraft filter then climb rate filter
+  const displayThermals = useMemo(() => {
+    let filtered = thermals;
+    if (selectedAircraft) {
+      filtered = filtered.filter((t) => t.aircraft === selectedAircraft);
+    }
+    if (selectedRegistration) {
+      filtered = filtered.filter((t) => t.registration === selectedRegistration);
+    }
+    return filtered;
+  }, [thermals, selectedAircraft, selectedRegistration]);
+
+  const filteredThermals = displayThermals.filter(
     (t) => t.avgClimbRate >= minClimbRate,
   );
   const avgClimb =
@@ -375,7 +391,7 @@ export default function Home() {
   return (
     <main className="relative h-dvh w-screen overflow-hidden">
       <MapView
-        thermals={thermals}
+        thermals={displayThermals}
         minClimbRate={minClimbRate}
         units={units}
         initialCenter={initialMapPos?.center}
@@ -432,6 +448,15 @@ export default function Home() {
                 isCollapsed={false}
                 onToggleCollapse={() => {}}
                 units={units}
+              />
+            ),
+            filter: (
+              <AircraftFilter
+                thermals={thermals}
+                selectedAircraft={selectedAircraft}
+                selectedRegistration={selectedRegistration}
+                onAircraftChange={setSelectedAircraft}
+                onRegistrationChange={setSelectedRegistration}
               />
             ),
             settings: (
@@ -509,6 +534,15 @@ export default function Home() {
                 isCollapsed={false}
                 onToggleCollapse={() => {}}
                 units={units}
+              />
+            ),
+            filter: (
+              <AircraftFilter
+                thermals={thermals}
+                selectedAircraft={selectedAircraft}
+                selectedRegistration={selectedRegistration}
+                onAircraftChange={setSelectedAircraft}
+                onRegistrationChange={setSelectedRegistration}
               />
             ),
             settings: (

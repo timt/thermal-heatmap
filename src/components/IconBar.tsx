@@ -1,9 +1,9 @@
 "use client";
 
-import { Calendar, BarChart3, Mountain, Settings, Share2 } from "lucide-react";
+import { Calendar, BarChart3, Mountain, ListFilter, Settings, Share2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-export type PanelId = "calendar" | "stats" | "altitude" | "settings";
+export type PanelId = "calendar" | "stats" | "altitude" | "filter" | "settings";
 
 interface IconBarProps {
   readonly activePanel: PanelId | null;
@@ -17,7 +17,7 @@ const ICONS = [
   { id: "calendar" as const, icon: Calendar, label: "Date selector" },
   { id: "stats" as const, icon: BarChart3, label: "Statistics" },
   { id: "altitude" as const, icon: Mountain, label: "Altitude profile" },
-  { id: "settings" as const, icon: Settings, label: "Settings" },
+  { id: "filter" as const, icon: ListFilter, label: "Aircraft filter" },
 ] as const;
 
 export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabel }: IconBarProps) {
@@ -25,7 +25,7 @@ export function IconBar({ activePanel, onPanelChange, panels, onShare, shareLabe
     <div className="flex items-start gap-2 p-3">
       {/* Icon strip */}
       <div className="flex w-12 flex-col items-center gap-1 rounded-xl bg-blue-600 py-3 shadow-lg">
-        {ICONS.slice(0, 3).map(({ id, icon: Icon, label }) => (
+        {ICONS.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             type="button"

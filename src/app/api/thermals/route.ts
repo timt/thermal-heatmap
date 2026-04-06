@@ -65,12 +65,25 @@ export async function GET(request: NextRequest) {
           topAlt: true,
           entryTime: true,
           exitTime: true,
+          flightId: true,
+          flight: {
+            select: {
+              aircraft: true,
+              registration: true,
+            },
+          },
         },
       });
 
+      const flatThermals = thermals.map(({ flight, ...rest }) => ({
+        ...rest,
+        aircraft: flight.aircraft,
+        registration: flight.registration,
+      }));
+
       return Response.json({
         status: "ready",
-        thermals,
+        thermals: flatThermals,
         metadata: {
           source,
           date: dateStr,

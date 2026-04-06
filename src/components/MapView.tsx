@@ -24,6 +24,9 @@ export interface ThermalData {
   topAlt: number;
   entryTime: string;
   exitTime: string;
+  flightId?: number;
+  aircraft?: string;
+  registration?: string | null;
 }
 
 export interface MapPosition {

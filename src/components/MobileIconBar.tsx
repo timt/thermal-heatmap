@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, BarChart3, Mountain, Settings, Share2 } from "lucide-react";
+import { Calendar, BarChart3, Mountain, ListFilter, Settings, Share2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { PanelId } from "./IconBar";
 
@@ -16,6 +16,7 @@ const ICONS = [
   { id: "calendar" as const, icon: Calendar, label: "Date selector" },
   { id: "stats" as const, icon: BarChart3, label: "Statistics" },
   { id: "altitude" as const, icon: Mountain, label: "Altitude profile" },
+  { id: "filter" as const, icon: ListFilter, label: "Aircraft filter" },
   { id: "share" as const, icon: Share2, label: "Share link" },
   { id: "settings" as const, icon: Settings, label: "Settings" },
 ] as const;

@@ -62,6 +62,9 @@ export async function POST(request: Request) {
       topAlt: number;
       entryTime: Date;
       exitTime: Date;
+      flightId: number;
+      aircraft: string;
+      registration: string | null;
     }[] = [];
 
     for (const rawId of flightIds) {
@@ -132,6 +135,9 @@ export async function POST(request: Request) {
           topAlt: t.topAlt,
           entryTime: new Date(t.entryTime * 1000),
           exitTime: new Date(t.exitTime * 1000),
+          flightId: flight.id,
+          aircraft: flight.aircraft,
+          registration: flight.registration,
         })),
       );
     }
