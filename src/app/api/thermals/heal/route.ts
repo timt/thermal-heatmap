@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
     const dateClause = date ? `AND f.date = '${date}'::date` : "";
     const suspects: { id: number; source_id: string; aircraft: string; registration: string | null; date: Date }[] =
       await prisma.$queryRawUnsafe(`
-        SELECT f.id, f.source_id, f.aircraft, f.registration, f.date
+        SELECT f.id, f."sourceId" as source_id, f.aircraft, f.registration, f.date
         FROM flights f
-        LEFT JOIN thermals t ON t.flight_id = f.id
+        LEFT JOIN thermals t ON t."flightId" = f.id
         WHERE f.source = $1
-          AND f.has_track_data = true
+          AND f."hasTrackData" = true
           AND f.processed = true
           ${dateClause}
         GROUP BY f.id
