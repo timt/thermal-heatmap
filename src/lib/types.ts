@@ -77,11 +77,16 @@ export interface LiveThermalResponse {
   readonly detectedAt: string; // ISO 8601
 }
 
+/** Result of fetching track points — distinguishes empty tracks from fetch failures */
+export type TrackFetchResult =
+  | { readonly status: "ok"; readonly points: TrackPoint[] }
+  | { readonly status: "failed"; readonly reason: string };
+
 /** Interface for data source providers */
 export interface FlightSourceProvider {
   name: string;
   getFlightIds(date: string): Promise<string[]>;
   getFlightDetail(id: string): Promise<NormalisedFlight>;
-  getTrackPoints(id: string): Promise<TrackPoint[]>;
+  getTrackPoints(id: string): Promise<TrackFetchResult>;
   getActivityCalendar?(season: string): Promise<Map<string, number>>;
 }

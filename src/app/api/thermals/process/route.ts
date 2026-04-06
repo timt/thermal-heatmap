@@ -84,11 +84,17 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // Fetch track points from BGA
-      const trackPoints = await provider.getTrackPoints(rawId);
+      // Fetch track points
+      const trackResult = await provider.getTrackPoints(rawId);
 
-      if (trackPoints.length === 0) {
-        // Mark as processed even with no track data
+      if (trackResult.status === "failed") {
+        // Track fetch failed — do NOT mark as processed so it can be retried
+        console.warn(`Track fetch failed for ${sourceId}: ${trackResult.reason}`);
+        continue;
+      }
+
+      if (trackResult.points.length === 0) {
+        // Genuinely no track data — safe to mark as processed
         await prisma.flight.update({
           where: { id: flight.id },
           data: { processed: true },
@@ -98,7 +104,7 @@ export async function POST(request: Request) {
       }
 
       // Run thermal detection
-      const detected = detectThermals(trackPoints);
+      const detected = detectThermals(trackResult.points);
 
       // Persist thermals to DB
       if (detected.length > 0) {

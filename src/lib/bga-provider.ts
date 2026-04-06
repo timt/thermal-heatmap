@@ -1,6 +1,6 @@
 import type {
   NormalisedFlight,
-  TrackPoint,
+  TrackFetchResult,
   FlightSourceProvider,
 } from "@/lib/types";
 import { parseIgc } from "@/lib/igc-parser";
@@ -60,15 +60,18 @@ export class BGALadderProvider implements FlightSourceProvider {
     };
   }
 
-  async getTrackPoints(id: string): Promise<TrackPoint[]> {
+  async getTrackPoints(id: string): Promise<TrackFetchResult> {
     try {
       const res = await fetch(`${BASE_URL}/API/FLIGHTIGC/${id}`);
-      if (!res.ok) return [];
+      if (!res.ok) {
+        return { status: "failed", reason: `BGA IGC fetch returned ${res.status}` };
+      }
 
       const igcContent = await res.text();
-      return parseIgc(igcContent, "");
-    } catch {
-      return [];
+      const points = parseIgc(igcContent, "");
+      return { status: "ok", points };
+    } catch (e) {
+      return { status: "failed", reason: `BGA IGC fetch error: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 }

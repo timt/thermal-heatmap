@@ -1,6 +1,7 @@
 import type {
   NormalisedFlight,
   TrackPoint,
+  TrackFetchResult,
   FlightSourceProvider,
 } from "@/lib/types";
 
@@ -107,12 +108,14 @@ export class WeGlideProvider implements FlightSourceProvider {
     );
   }
 
-  async getTrackPoints(id: string): Promise<TrackPoint[]> {
+  async getTrackPoints(id: string): Promise<TrackFetchResult> {
     try {
       const res = await fetch(`${CDN_URL}/v1/flightdata/${id}`, {
         headers: HEADERS,
       });
-      if (!res.ok) return [];
+      if (!res.ok) {
+        return { status: "failed", reason: `WeGlide track fetch returned ${res.status}` };
+      }
 
       const data: {
         geom: { coordinates: [number, number][] };
@@ -133,9 +136,9 @@ export class WeGlideProvider implements FlightSourceProvider {
         points.push({ lat, lon, alt: alt[i], time: time[i] });
       }
 
-      return points;
-    } catch {
-      return [];
+      return { status: "ok", points };
+    } catch (e) {
+      return { status: "failed", reason: `WeGlide track fetch error: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
