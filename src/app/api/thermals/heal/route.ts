@@ -31,25 +31,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const dateFilter = date ? { date: new Date(`${date}T00:00:00Z`) } : {};
-
   try {
-    // Find flights that are processed with hasTrackData but have zero thermals
-    const suspects = await prisma.flight.findMany({
-      where: {
-        source,
-        hasTrackData: true,
-        processed: true,
-        ...dateFilter,
-      },
-      include: {
-        _count: { select: { thermals: true } },
-      },
-    }).then(flights => flights.filter(f => f._count.thermals === 0));
+    // Find processed flights with hasTrackData but zero thermals using raw SQL
+    // to minimise connection usage
+    const dateClause = date ? `AND f.date = '${date}'::date` : "";
+    const suspects: { id: number; source_id: string; aircraft: string; registration: string | null; date: Date }[] =
+      await prisma.$queryRawUnsafe(`
+        SELECT f.id, f.source_id, f.aircraft, f.registration, f.date
+        FROM flights f
+        LEFT JOIN thermals t ON t.flight_id = f.id
+        WHERE f.source = $1
+          AND f.has_track_data = true
+          AND f.processed = true
+          ${dateClause}
+        GROUP BY f.id
+        HAVING COUNT(t.id) = 0
+      `, source);
 
     if (suspects.length === 0) {
       return Response.json({
+        suspectsFound: 0,
         healed: 0,
+        thermalsAdded: 0,
         message: "No suspect flights found",
       });
     }
@@ -66,12 +69,12 @@ export async function POST(request: NextRequest) {
     }[] = [];
 
     for (const flight of suspects) {
-      const rawId = flight.sourceId.replace(`${source}:`, "");
+      const rawId = flight.source_id.replace(`${source}:`, "");
       const trackResult = await provider.getTrackPoints(rawId);
 
       if (trackResult.status === "failed") {
         results.push({
-          sourceId: flight.sourceId,
+          sourceId: flight.source_id,
           aircraft: flight.aircraft,
           registration: flight.registration,
           thermalsFound: 0,
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
 
       if (trackResult.points.length === 0) {
         results.push({
-          sourceId: flight.sourceId,
+          sourceId: flight.source_id,
           aircraft: flight.aircraft,
           registration: flight.registration,
           thermalsFound: 0,
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
       }
 
       results.push({
-        sourceId: flight.sourceId,
+        sourceId: flight.source_id,
         aircraft: flight.aircraft,
         registration: flight.registration,
         thermalsFound: detected.length,
@@ -141,6 +144,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Heal failed:", error);
-    return Response.json({ error: "Heal operation failed" }, { status: 500 });
+    return Response.json(
+      { error: "Heal operation failed", detail: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
   }
 }
