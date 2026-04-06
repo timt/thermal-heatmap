@@ -40,17 +40,12 @@ export async function POST(request: NextRequest) {
         source,
         hasTrackData: true,
         processed: true,
-        thermals: { none: {} },
         ...dateFilter,
       },
-      select: {
-        id: true,
-        sourceId: true,
-        aircraft: true,
-        registration: true,
-        date: true,
+      include: {
+        _count: { select: { thermals: true } },
       },
-    });
+    }).then(flights => flights.filter(f => f._count.thermals === 0));
 
     if (suspects.length === 0) {
       return Response.json({
