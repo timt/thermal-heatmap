@@ -110,7 +110,7 @@ function parseLongitude(raw: string): number {
  * Returns ISO date string "YYYY-MM-DD" or null.
  */
 function extractHfdteDate(content: string): string | null {
-  const match = content.match(/^HFDTE(?:DATE:)?(\d{2})(\d{2})(\d{2})\s*$/m);
+  const match = content.match(/^HFDTE(?:DATE:)?(\d{2})(\d{2})(\d{2})(?:,\d+)?\s*$/m);
   if (!match) return null;
 
   const [, dd, mm, yy] = match;
