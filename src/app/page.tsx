@@ -62,6 +62,7 @@ function getInitialDate(): string {
   if (typeof window === "undefined") return yesterday();
   const url = getUrlParams();
   const dateParam = url?.get("date");
+  if (dateParam === "live") return "live";
   if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return dateParam;
   return yesterday();
 }
@@ -271,9 +272,68 @@ export default function Home() {
     }
   }, []);
 
+  const isLiveMode = selectedDate === "live";
+
   useEffect(() => {
+    if (isLiveMode) return;
     loadDate(selectedDate, source, region);
-  }, [selectedDate, source, region, loadDate]);
+  }, [selectedDate, source, region, loadDate, isLiveMode]);
+
+  // Live mode: poll /api/ogn/thermals every 30s
+  useEffect(() => {
+    if (!isLiveMode) return;
+
+    // Cancel any in-progress historical processing and reset state
+    if (abortRef.current) abortRef.current.abort();
+    setIsProcessing(false);
+    setProcessedAt("LIVE");
+    setNewFlightsAvailable(0);
+    setSelectedAircraft(null);
+    setSelectedRegistration(null);
+
+    let cancelled = false;
+
+    async function fetchLive() {
+      try {
+        const res = await fetch("/api/ogn/thermals?max_age=3600");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const now = Date.now();
+        const mapped: ThermalData[] = data.thermals.map((t: {
+          lat: number;
+          lon: number;
+          avgClimbRate: number;
+          altGain: number;
+          baseAlt: number;
+          topAlt: number;
+          entryTime: string;
+          exitTime: string;
+        }) => ({
+          lat: t.lat,
+          lon: t.lon,
+          avgClimbRate: t.avgClimbRate,
+          altGain: t.altGain,
+          baseAlt: t.baseAlt,
+          topAlt: t.topAlt,
+          entryTime: t.entryTime,
+          exitTime: t.exitTime,
+          ageSeconds: Math.max(0, Math.floor((now - new Date(t.exitTime).getTime()) / 1000)),
+        }));
+        setThermals(mapped);
+        setFlightCount(mapped.length);
+      } catch (e) {
+        console.error("Live thermals fetch failed:", e);
+      }
+    }
+
+    fetchLive();
+    const interval = setInterval(fetchLive, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isLiveMode]);
 
   async function checkAndRefresh(
     date: string,

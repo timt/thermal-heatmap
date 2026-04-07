@@ -27,6 +27,18 @@ export interface ThermalData {
   flightId?: number;
   aircraft?: string;
   registration?: string | null;
+  ageSeconds?: number; // populated in live mode only
+}
+
+const LIVE_FADE_SECONDS = 3600;
+const LIVE_MIN_OPACITY = 0.1;
+
+function getAgeOpacity(ageSeconds: number | undefined): number {
+  if (ageSeconds === undefined) return 1;
+  if (ageSeconds <= 0) return 1;
+  if (ageSeconds >= LIVE_FADE_SECONDS) return LIVE_MIN_OPACITY;
+  const fraction = ageSeconds / LIVE_FADE_SECONDS;
+  return 1 - fraction * (1 - LIVE_MIN_OPACITY);
 }
 
 export interface MapPosition {
@@ -80,11 +92,10 @@ function HeatmapLayer({
 
     const maxClimbRate = Math.max(...filtered.map((t) => t.avgClimbRate));
 
-    const points: [number, number, number][] = filtered.map((t) => [
-      t.lat,
-      t.lon,
-      maxClimbRate > 0 ? t.avgClimbRate / maxClimbRate : 0,
-    ]);
+    const points: [number, number, number][] = filtered.map((t) => {
+      const climbWeight = maxClimbRate > 0 ? t.avgClimbRate / maxClimbRate : 0;
+      return [t.lat, t.lon, climbWeight * getAgeOpacity(t.ageSeconds)];
+    });
 
     const layer = (L as any).heatLayer(points, {
       radius: 25,
@@ -178,7 +189,9 @@ export default function MapView({ thermals, minClimbRate, units, initialCenter, 
 
       <HeatmapLayer thermals={thermals} minClimbRate={minClimbRate} />
 
-      {filtered.map((thermal, index) => (
+      {filtered.map((thermal, index) => {
+        const ageOpacity = getAgeOpacity(thermal.ageSeconds);
+        return (
         <CircleMarker
           key={`${thermal.lat}-${thermal.lon}-${index}`}
           center={[thermal.lat, thermal.lon]}
@@ -186,7 +199,8 @@ export default function MapView({ thermals, minClimbRate, units, initialCenter, 
           pathOptions={{
             color: getMarkerColour(thermal.avgClimbRate),
             fillColor: getMarkerColour(thermal.avgClimbRate),
-            fillOpacity: 0.8,
+            fillOpacity: 0.8 * ageOpacity,
+            opacity: ageOpacity,
             weight: 1,
           }}
         >
@@ -204,7 +218,8 @@ export default function MapView({ thermals, minClimbRate, units, initialCenter, 
             </div>
           </Popup>
         </CircleMarker>
-      ))}
+        );
+      })}
     </MapContainer>
   );
 }

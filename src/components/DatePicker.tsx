@@ -37,10 +37,19 @@ function getStartDayOfWeek(year: number, month: number): number {
   return (day + 6) % 7;
 }
 
+function isIsoDate(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
 export function DatePicker({ selectedDate, processedDates, activityDates, onDateChange }: DatePickerProps) {
-  const { year: selYear, month: selMonth } = parseISO(selectedDate);
-  const [viewYear, setViewYear] = useState(selYear);
-  const [viewMonth, setViewMonth] = useState(selMonth);
+  const fallback = isIsoDate(selectedDate)
+    ? parseISO(selectedDate)
+    : (() => {
+        const now = new Date();
+        return { year: now.getFullYear(), month: now.getMonth() };
+      })();
+  const [viewYear, setViewYear] = useState(fallback.year);
+  const [viewMonth, setViewMonth] = useState(fallback.month);
 
   const processedSet = useMemo(() => new Set(processedDates), [processedDates]);
   const activitySet = useMemo(() => new Set(activityDates ?? []), [activityDates]);
@@ -79,8 +88,29 @@ export function DatePicker({ selectedDate, processedDates, activityDates, onDate
     return cells;
   }, [viewYear, viewMonth, daysInMonth, startDay]);
 
+  const isLive = selectedDate === "live";
+
   return (
     <div className="rounded-xl bg-gray-900/80 p-3 text-white shadow-lg backdrop-blur-md">
+      {/* Live mode button */}
+      <button
+        type="button"
+        onClick={() => onDateChange("live")}
+        className={`mb-2 flex w-full items-center justify-center gap-2 rounded px-3 py-2 text-sm font-semibold transition-colors ${
+          isLive
+            ? "bg-red-500 text-white"
+            : "bg-white/10 text-gray-200 hover:bg-white/20"
+        }`}
+        aria-pressed={isLive}
+      >
+        <span
+          className={`inline-block h-2 w-2 rounded-full ${
+            isLive ? "animate-pulse bg-white" : "bg-red-400"
+          }`}
+        />
+        Today (live)
+      </button>
+
       {/* Header */}
       <div className="mb-2 flex items-center justify-between">
         <button
