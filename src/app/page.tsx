@@ -565,7 +565,10 @@ export default function Home() {
                 selectedDate={selectedDate}
                 processedDates={processedDates}
                 activityDates={activityDates}
-                onDateChange={setSelectedDate}
+                onDateChange={(date) => {
+                  setSelectedDate(date);
+                  setActivePanel(null);
+                }}
               />
             ),
             stats: (
