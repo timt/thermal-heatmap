@@ -457,6 +457,7 @@ export default function Home() {
         initialCenter={initialMapPos?.center}
         initialZoom={initialMapPos?.zoom}
         onViewChange={handleMapViewChange}
+        liveMode={isLiveMode}
       />
 
       {/* Desktop: icon bar + collapsible panels */}

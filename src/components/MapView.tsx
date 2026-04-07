@@ -14,6 +14,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 import type { UnitSystem } from "@/lib/units";
 import { formatClimbRate, formatAltitude } from "@/lib/units";
+import { UserLocationLayer } from "@/components/UserLocationLayer";
 
 export interface ThermalData {
   lat: number;
@@ -54,6 +55,7 @@ export interface MapViewProps {
   initialCenter?: [number, number];
   initialZoom?: number;
   onViewChange?: (position: MapPosition) => void;
+  liveMode?: boolean;
 }
 
 function getMarkerColour(climbRate: number): string {
@@ -144,7 +146,7 @@ function MapStateTracker({ onViewChange }: { onViewChange: (position: MapPositio
   return null;
 }
 
-export default function MapView({ thermals, minClimbRate, units, initialCenter, initialZoom, onViewChange }: MapViewProps) {
+export default function MapView({ thermals, minClimbRate, units, initialCenter, initialZoom, onViewChange, liveMode }: MapViewProps) {
   const filtered = thermals.filter((t) => t.avgClimbRate >= minClimbRate);
 
   return (
@@ -188,6 +190,8 @@ export default function MapView({ thermals, minClimbRate, units, initialCenter, 
       </LayersControl>
 
       <HeatmapLayer thermals={thermals} minClimbRate={minClimbRate} />
+
+      {liveMode && <UserLocationLayer />}
 
       {filtered.map((thermal, index) => {
         const ageOpacity = getAgeOpacity(thermal.ageSeconds);
