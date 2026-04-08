@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/ogn-poll",
-      "schedule": "* 5-21 * * *"
+      "schedule": "0 5-21 * * *"
     }
   ]
 }
