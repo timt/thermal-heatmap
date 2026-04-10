@@ -71,39 +71,28 @@ model Thermal {
 model LivePosition {
   id           Int      @id @default(autoincrement())
   deviceId     String
-  callsign     String
   registration String?
+  model        String?
   lat          Float
   lon          Float
   altMetres    Float
-  heading      Int
-  speedKmh     Float
+  groundKt     Float
   climbRateMs  Float
   aircraftType Int
-  receiver     String
-  icaoHex      String?
   timestamp    DateTime
   fetchedAt    DateTime @default(now())
 
   @@unique([deviceId, timestamp])
   @@index([fetchedAt])
-  @@index([aircraftType])
   @@map("live_positions")
 }
 
-model OgnDevice {
-  deviceType    String
-  deviceId      String  @id
-  aircraftModel String
-  registration  String
-  cn            String
-  tracked       Boolean
-  identified    Boolean
-  aircraftType  Int
-  updatedAt     DateTime @default(now())
+model PollState {
+  id             Int      @id @default(1)
+  lastPollAt     DateTime @default(now())
+  lastPositionTs DateTime @default(now())
 
-  @@index([registration])
-  @@map("ogn_devices")
+  @@map("poll_state")
 }
 
 model LiveThermal {

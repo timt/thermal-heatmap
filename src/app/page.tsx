@@ -279,7 +279,7 @@ export default function Home() {
     loadDate(selectedDate, source, region);
   }, [selectedDate, source, region, loadDate, isLiveMode]);
 
-  // Live mode: poll /api/ogn/thermals every 30s
+  // Live mode: poll /api/live/thermals every 30s
   useEffect(() => {
     if (!isLiveMode) return;
 
@@ -295,7 +295,7 @@ export default function Home() {
 
     async function fetchLive() {
       try {
-        const res = await fetch("/api/ogn/thermals?max_age=3600");
+        const res = await fetch("/api/live/thermals?max_age=3600");
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;

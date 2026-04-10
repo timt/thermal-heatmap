@@ -19,11 +19,10 @@ const LIVE_DETECTION_PARAMS: Partial<ThermalDetectionParams> = {
 export async function detectLiveThermals(): Promise<number> {
   const since = new Date(Date.now() - TRACK_WINDOW_MINUTES * 60 * 1000);
 
-  // Fetch recent positions for all gliders
+  // Fetch recent positions (already filtered to gliders at ingestion)
   const positions = await prisma.livePosition.findMany({
     where: {
       timestamp: { gte: since },
-      aircraftType: 0,
     },
     orderBy: { timestamp: "asc" },
     select: {
