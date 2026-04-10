@@ -48,6 +48,9 @@ export interface ThermalDetectionParams {
   sampleRate: number;            // Default 4 (every Nth point)
 }
 
+/** Status of the tracker API connection */
+export type TrackerStatus = "ok" | "error" | "no-data";
+
 /** A live thermal detected from tracker positions (API response shape) */
 export interface LiveThermalResponse {
   readonly deviceId: string;

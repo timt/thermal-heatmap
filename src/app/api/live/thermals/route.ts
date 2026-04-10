@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchTrackerPositions } from "@/lib/tracker-client";
 import { detectLiveThermals } from "@/lib/live-thermal-detector";
-import type { LiveThermalResponse } from "@/lib/types";
+import type { LiveThermalResponse, TrackerStatus } from "@/lib/types";
 
 const STALE_THRESHOLD_MS = 30_000;
 const DEFAULT_MAX_AGE_SECONDS = 3600;
@@ -80,15 +80,17 @@ export async function GET(request: NextRequest) {
     // Try to acquire the poll lock — only one request does the fetch
     let newThermals = 0;
     let fetched = 0;
+    let trackerStatus: TrackerStatus = "ok";
 
     const cursor = await tryAcquirePollLock();
     if (cursor) {
-      const positions = await fetchTrackerPositions(cursor);
-      fetched = positions.length;
+      const result = await fetchTrackerPositions(cursor);
+      trackerStatus = result.trackerStatus;
+      fetched = result.positions.length;
 
-      if (positions.length > 0) {
+      if (result.positions.length > 0) {
         await prisma.livePosition.createMany({
-          data: positions.map((p) => ({
+          data: result.positions.map((p) => ({
             deviceId: p.deviceId,
             registration: p.registration,
             model: p.model,
@@ -104,7 +106,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Advance cursor to the latest position timestamp
-        const lastTs = new Date(positions[positions.length - 1].ts);
+        const lastTs = new Date(result.positions[result.positions.length - 1].ts);
         await prisma.pollState.update({
           where: { id: 1 },
           data: { lastPositionTs: lastTs },
@@ -149,6 +151,7 @@ export async function GET(request: NextRequest) {
       newThermals,
       fetched,
       maxAgeSeconds,
+      trackerStatus,
     });
   } catch (error) {
     console.error("Live thermals error:", error);

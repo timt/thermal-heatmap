@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { ThermalData, MapPosition } from "@/components/MapView";
+import type { TrackerStatus } from "@/lib/types";
 import { DatePicker } from "@/components/DatePicker";
 import { ClimbRateSlider } from "@/components/ClimbRateSlider";
 import { SourceSelector } from "@/components/SourceSelector";
@@ -116,6 +117,7 @@ export default function Home() {
   const [selectedRegistration, setSelectedRegistration] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<PanelId | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [trackerStatus, setTrackerStatus] = useState<TrackerStatus | undefined>(undefined);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -296,9 +298,13 @@ export default function Home() {
     async function fetchLive() {
       try {
         const res = await fetch("/api/live/thermals?max_age=3600");
-        if (!res.ok) return;
+        if (!res.ok) {
+          setTrackerStatus("error");
+          return;
+        }
         const data = await res.json();
         if (cancelled) return;
+        setTrackerStatus(data.trackerStatus ?? "ok");
         const now = Date.now();
         const mapped: ThermalData[] = data.thermals.map((t: {
           lat: number;
@@ -332,6 +338,7 @@ export default function Home() {
     return () => {
       cancelled = true;
       clearInterval(interval);
+      setTrackerStatus(undefined);
     };
   }, [isLiveMode]);
 
@@ -480,6 +487,7 @@ export default function Home() {
                 processedDates={processedDates}
                 activityDates={activityDates}
                 onDateChange={setSelectedDate}
+                trackerStatus={trackerStatus}
               />
             ),
             stats: (
@@ -569,6 +577,7 @@ export default function Home() {
                   setSelectedDate(date);
                   setActivePanel(null);
                 }}
+                trackerStatus={trackerStatus}
               />
             ),
             stats: (

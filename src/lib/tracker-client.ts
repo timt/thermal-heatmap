@@ -1,3 +1,5 @@
+import type { TrackerStatus } from "@/lib/types";
+
 const TRACKER_URL = "https://tracker.gliderzone.com/api/positions";
 const DEFAULT_BBOX = "49.5,-8.0,61.0,2.0"; // UK
 const DEFAULT_LIMIT = 5000;
@@ -17,6 +19,11 @@ export interface TrackerPosition {
   readonly model: string | null;
 }
 
+export interface TrackerFetchResult {
+  readonly positions: readonly TrackerPosition[];
+  readonly trackerStatus: TrackerStatus;
+}
+
 interface TrackerResponse {
   readonly positions: readonly TrackerPosition[];
   readonly count: number;
@@ -29,10 +36,11 @@ interface TrackerResponse {
  */
 export async function fetchTrackerPositions(
   since: Date,
-): Promise<readonly TrackerPosition[]> {
+): Promise<TrackerFetchResult> {
   const apiKey = process.env.TRACKER_API_KEY;
   if (!apiKey) {
-    throw new Error("TRACKER_API_KEY environment variable is not set");
+    console.error("TRACKER_API_KEY environment variable is not set");
+    return { positions: [], trackerStatus: "error" };
   }
 
   const allPositions: TrackerPosition[] = [];
@@ -52,7 +60,7 @@ export async function fetchTrackerPositions(
 
     if (!response.ok) {
       console.error(`Tracker API fetch failed: ${response.status} ${response.statusText}`);
-      break;
+      return { positions: [], trackerStatus: "error" };
     }
 
     const data: TrackerResponse = await response.json();
@@ -64,5 +72,8 @@ export async function fetchTrackerPositions(
     }
   }
 
-  return allPositions;
+  return {
+    positions: allPositions,
+    trackerStatus: allPositions.length > 0 ? "ok" : "no-data",
+  };
 }

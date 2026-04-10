@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { TrackerStatus } from "@/lib/types";
 
 interface DatePickerProps {
   selectedDate: string;
   processedDates: string[];
   activityDates?: string[];
   onDateChange: (date: string) => void;
+  trackerStatus?: TrackerStatus;
 }
 
 const DAYS_OF_WEEK = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
@@ -41,7 +43,13 @@ function isIsoDate(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
-export function DatePicker({ selectedDate, processedDates, activityDates, onDateChange }: DatePickerProps) {
+const TRACKER_STATUS_CONFIG: Record<TrackerStatus, { colour: string; tooltip: string }> = {
+  ok: { colour: "bg-emerald-400", tooltip: "Live tracking active" },
+  "no-data": { colour: "bg-amber-400", tooltip: "Connected — no gliders detected" },
+  error: { colour: "bg-red-400", tooltip: "Live tracking unavailable" },
+};
+
+export function DatePicker({ selectedDate, processedDates, activityDates, onDateChange, trackerStatus }: DatePickerProps) {
   const fallback = isIsoDate(selectedDate)
     ? parseISO(selectedDate)
     : (() => {
@@ -105,8 +113,13 @@ export function DatePicker({ selectedDate, processedDates, activityDates, onDate
       >
         <span
           className={`inline-block h-2 w-2 rounded-full ${
-            isLive ? "animate-pulse bg-white" : "bg-red-400"
+            isLive && trackerStatus
+              ? `animate-pulse ${TRACKER_STATUS_CONFIG[trackerStatus].colour}`
+              : isLive
+                ? "animate-pulse bg-white"
+                : "bg-red-400"
           }`}
+          title={isLive && trackerStatus ? TRACKER_STATUS_CONFIG[trackerStatus].tooltip : undefined}
         />
         Today (live)
       </button>
