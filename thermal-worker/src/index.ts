@@ -12,6 +12,7 @@ import { processedDatesRoute } from "./routes/processed-dates.ts";
 import { flightsRoute } from "./routes/flights.ts";
 import { activityCalendarRoute } from "./routes/activity-calendar.ts";
 import { liveThermalsRoute } from "./routes/live-thermals.ts";
+import { startProcessor } from "./processor.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 
@@ -40,3 +41,5 @@ app.route("/", liveThermalsRoute);
 serve({ fetch: app.fetch, port: PORT, hostname: "0.0.0.0" }, () => {
   console.log(`[server] listening on 0.0.0.0:${PORT}`);
 });
+
+startProcessor();
