@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -126,6 +126,31 @@ function HeatmapLayer({
   return null;
 }
 
+const LAYER_STORAGE_KEY = "thermal-map-layer";
+const LAYER_NAMES = ["Dark", "Light", "Terrain", "Satellite"] as const;
+type LayerName = (typeof LAYER_NAMES)[number];
+
+function getStoredLayer(): LayerName {
+  if (typeof window === "undefined") return "Light";
+  const stored = localStorage.getItem(LAYER_STORAGE_KEY);
+  if (stored && (LAYER_NAMES as readonly string[]).includes(stored)) return stored as LayerName;
+  return "Light";
+}
+
+function LayerPersistence() {
+  const map = useMap();
+
+  useEffect(() => {
+    function handleBaseLayerChange(e: L.LayersControlEvent) {
+      localStorage.setItem(LAYER_STORAGE_KEY, e.name);
+    }
+    map.on("baselayerchange", handleBaseLayerChange);
+    return () => { map.off("baselayerchange", handleBaseLayerChange); };
+  }, [map]);
+
+  return null;
+}
+
 function MapStateTracker({ onViewChange }: { onViewChange: (position: MapPosition) => void }) {
   const map = useMap();
 
@@ -148,6 +173,7 @@ function MapStateTracker({ onViewChange }: { onViewChange: (position: MapPositio
 
 export default function MapView({ thermals, minClimbRate, units, initialCenter, initialZoom, onViewChange, liveMode }: MapViewProps) {
   const filtered = thermals.filter((t) => t.avgClimbRate >= minClimbRate);
+  const [activeLayer] = useState<LayerName>(getStoredLayer);
 
   return (
     <MapContainer
@@ -156,26 +182,27 @@ export default function MapView({ thermals, minClimbRate, units, initialCenter, 
       style={{ height: "100%", width: "100%" }}
     >
       {onViewChange && <MapStateTracker onViewChange={onViewChange} />}
+      <LayerPersistence />
       <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="Dark">
+        <LayersControl.BaseLayer checked={activeLayer === "Dark"} name="Dark">
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Light">
+        <LayersControl.BaseLayer checked={activeLayer === "Light"} name="Light">
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Terrain">
+        <LayersControl.BaseLayer checked={activeLayer === "Terrain"} name="Terrain">
           <TileLayer
             attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
             url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Satellite">
+        <LayersControl.BaseLayer checked={activeLayer === "Satellite"} name="Satellite">
           <TileLayer
             attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
