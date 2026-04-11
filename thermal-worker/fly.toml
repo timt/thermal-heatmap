@@ -1,0 +1,28 @@
+# Fly.io configuration for the thermal-heatmap worker.
+# Run `fly launch --no-deploy --copy-config` from the repo root with
+# `--dockerfile thermal-worker/Dockerfile` to provision the app, then push.
+
+app = "thermal-worker"
+primary_region = "lhr"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "get"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

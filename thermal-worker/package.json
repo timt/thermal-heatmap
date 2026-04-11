@@ -1,0 +1,25 @@
+{
+  "name": "thermal-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.13",
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "hono": "^4.12.12",
+    "pg": "^8.20.0",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pg": "^8",
+    "prisma": "^7.6.0",
+    "typescript": "^5"
+  }
+}
