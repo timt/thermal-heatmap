@@ -13,6 +13,7 @@ import { flightsRoute } from "./routes/flights.ts";
 import { activityCalendarRoute } from "./routes/activity-calendar.ts";
 import { liveThermalsRoute } from "./routes/live-thermals.ts";
 import { startProcessor } from "./processor.ts";
+import { startLivePoller } from "./live-poller.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 
@@ -43,3 +44,4 @@ serve({ fetch: app.fetch, port: PORT, hostname: "0.0.0.0" }, () => {
 });
 
 startProcessor();
+startLivePoller();

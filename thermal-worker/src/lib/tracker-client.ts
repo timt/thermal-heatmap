@@ -1,6 +1,6 @@
 import type { TrackerStatus } from "./types.ts";
 
-const TRACKER_URL = "https://tracker.gliderzone.com/api/positions";
+const TRACKER_URL = "https://api.tracker.gliderzone.com/positions";
 const DEFAULT_BBOX = "49.5,-8.0,61.0,2.0"; // UK
 const DEFAULT_LIMIT = 5000;
 const GLIDER_TYPE = 1;
