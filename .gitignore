@@ -13,12 +13,9 @@
 # testing
 /coverage
 
-# next.js
+# build output
 /.next/
-/out/
-
-# production
-/build
+/web/dist
 
 # misc
 .DS_Store
@@ -33,14 +30,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
-/src/generated/prisma
 /thermal-worker/generated/prisma
 /thermal-worker/node_modules
 /web/node_modules

@@ -1,13 +1,5 @@
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
-}
-
-// Second client for the thermal-worker service. Identical schema, separate
-// output path so each deployable has its own copy. Saves us duplicating
-// the schema file across the repo.
-generator workerClient {
-  provider = "prisma-client"
   output   = "../thermal-worker/generated/prisma"
 }
 
