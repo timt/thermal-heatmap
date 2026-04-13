@@ -43,3 +43,5 @@ next-env.d.ts
 /src/generated/prisma
 /thermal-worker/generated/prisma
 /thermal-worker/node_modules
+/web/node_modules
+/web/dist
