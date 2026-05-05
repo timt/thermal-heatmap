@@ -22,9 +22,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: thermal-worker/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - run: npm ci --prefix thermal-worker
+      # Install root deps (prisma + dotenv) for the migrate step.
+      # The Fly remote builder builds the worker image from the
+      # Dockerfile, so we don't need thermal-worker/node_modules locally.
+      - run: npm ci
 
       - name: Run Prisma migrations
         run: npx prisma migrate deploy
