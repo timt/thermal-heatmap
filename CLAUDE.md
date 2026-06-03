@@ -9,7 +9,7 @@ UK thermal heatmap for glider pilots, showing thermals detected from BGA Ladder 
 ```
 Cloudflare Pages (thermal.gliderzone.com)      → Vite SPA (read-only UI)
 Fly.io worker   (api.thermal.gliderzone.com)   → Hono API + background processing
-Supabase                                        → PostgreSQL (shared)
+Neon                                            → PostgreSQL (shared)
 ```
 
 The UI is a static SPA that reads cached data from the worker API. The worker fetches flights from BGA/WeGlide, detects thermals, and polls live tracker positions — all on background timers. The client never triggers processing.
@@ -19,7 +19,7 @@ The UI is a static SPA that reads cached data from the worker API. The worker fe
 - **Frontend:** Vite + React 19, Tailwind CSS v4, Leaflet
 - **Worker:** Hono + Node.js (tsx runtime), Prisma v7 adapter pattern
 - **ORM:** Prisma v7 (shared schema at repo root, generated into `thermal-worker/`)
-- **Database:** PostgreSQL (Docker locally, Supabase in production)
+- **Database:** PostgreSQL (Docker locally, Neon in production)
 - **Deployment:** Cloudflare Pages (web) + Fly.io (worker), via GitHub Actions
 - **External APIs:** BGA Ladder, WeGlide, tracker API (api.tracker.gliderzone.com)
 
@@ -79,11 +79,11 @@ Two independent GitHub Actions workflows, triggered by changes to their respecti
 
 Required GitHub secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL`, `FLY_API_TOKEN`.
 
-The worker also needs `DATABASE_URL` and `TRACKER_API_KEY` set as Fly.io secrets.
+The GitHub `DATABASE_URL` secret is used **only** by `prisma migrate deploy` in `deploy-worker.yml`, so it must be the Neon **direct** (unpooled) URL — pooled/PgBouncer connections are unreliable for migrations. The Fly.io worker reads its **own** `DATABASE_URL` secret at runtime via a `pg` Pool (`thermal-worker/src/db.ts`), so that one must be the Neon **pooled** URL. The worker also needs `TRACKER_API_KEY` as a Fly.io secret.
 
-To run migrations against production manually:
+To run migrations against production manually (use the **direct**, unpooled URL):
 ```bash
-DATABASE_URL="<supabase-pooler-url>" npx prisma migrate deploy
+DATABASE_URL="<neon-direct-url>" npx prisma migrate deploy
 ```
 
 ## Prisma v7 Gotchas
@@ -99,11 +99,16 @@ DATABASE_URL="<supabase-pooler-url>" npx prisma migrate deploy
 4. **Provider is `prisma-client`** not `prisma-client-js`.
 5. **`@prisma/adapter-pg`** is the correct package (not `@prisma/pg-worker` which is v6).
 
-## Supabase Gotchas
+## Neon Notes
 
-- Direct connection (`db.<ref>.supabase.co:5432`) does not resolve for newer projects.
-- Use the **session pooler** instead: `postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`
-- URL-encode passwords containing special characters (`*` → `%2A`, `!` → `%21`).
+- **Pooled vs direct** — Neon exposes two endpoint hosts for the same database:
+  - **Direct** (`ep-<id>.<region>.aws.neon.tech`) — for migrations (`prisma migrate deploy`) and any DDL/admin work. This is the GitHub `DATABASE_URL` secret.
+  - **Pooled** (`ep-<id>-pooler.<region>.aws.neon.tech`) — PgBouncer endpoint for the long-lived worker runtime. This is the Fly.io `DATABASE_URL` secret.
+  - The only difference in the URL is the `-pooler` suffix on the host. Both carry `?sslmode=require&channel_binding=require`.
+- **Region** — project lives in `aws-eu-west-2` (London), matching the Fly worker's `lhr`.
+- **Auto-suspend** — the compute suspends when idle and cold-starts on the next connection (~1–2s). Tools like `prisma migrate status` can return a transient `P1001` on the first hit; just retry. The live poller (every 30s) keeps production warm.
+- **Branching** — Neon can branch the database (copy-on-write) for preview deploys or testing a migration in isolation: `neonctl branches create --project-id <id> --name <branch>` gives an independent endpoint you can point a throwaway `DATABASE_URL` at, then `neonctl branches delete` when done.
+- **CLI** — manage via `neonctl` (`npm i -g neonctl`, `neonctl auth`). Connection strings: `neonctl connection-string [--pooled] --project-id <id>`.
 
 ## Conventions
 
