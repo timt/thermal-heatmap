@@ -97,7 +97,7 @@ function HeatmapLayer({
       return [t.lat, t.lon, climbWeight * getAgeOpacity(t.ageSeconds)];
     });
 
-    const layer = (L as any).heatLayer(points, {
+    const layer = L.heatLayer(points, {
       radius: 25,
       blur: 20,
       maxZoom: 12,

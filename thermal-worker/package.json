@@ -6,7 +6,9 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.13",
@@ -17,9 +19,13 @@
     "tsx": "^4.19.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^20",
     "@types/pg": "^8",
+    "eslint": "^9.39.4",
+    "globals": "^17.6.0",
     "prisma": "^7.6.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.61.0"
   }
 }

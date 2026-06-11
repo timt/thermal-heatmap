@@ -25,13 +25,16 @@ jobs:
 
       - run: npm ci --prefix web
 
+      - name: Lint
+        run: npm run lint --prefix web
+
       - name: Build
         run: npm run build --prefix web
         env:
           VITE_API_BASE: https://api.thermal.gliderzone.com
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

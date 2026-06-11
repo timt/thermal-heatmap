@@ -91,7 +91,6 @@ export default function ThermalMap() {
   const hasUrlDate = useRef(new URLSearchParams(window.location.search).has("date"));
   const [thermals, setThermals] = useState<ThermalData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processedAt, setProcessedAt] = useState<string | null>(null);
   const [flightCount, setFlightCount] = useState(0);
   const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
   const [selectedRegistration, setSelectedRegistration] = useState<string | null>(null);
@@ -191,7 +190,6 @@ export default function ThermalMap() {
   const loadDate = useCallback(async (date: string, currentSource: string) => {
     setThermals([]);
     setIsProcessing(false);
-    setProcessedAt(null);
     setSelectedAircraft(null);
     setSelectedRegistration(null);
 
@@ -204,7 +202,6 @@ export default function ThermalMap() {
       if (data.status === "ready") {
         setThermals(data.thermals);
         setFlightCount(data.metadata.flightCount);
-        setProcessedAt(data.metadata.processedAt);
         return;
       }
 
@@ -237,7 +234,6 @@ export default function ThermalMap() {
         if (data.status === "ready") {
           setThermals(data.thermals);
           setFlightCount(data.metadata.flightCount);
-          setProcessedAt(data.metadata.processedAt);
           setIsProcessing(false);
         }
       } catch {
@@ -253,7 +249,6 @@ export default function ThermalMap() {
     if (!isLiveMode) return;
 
     setIsProcessing(false);
-    setProcessedAt("LIVE");
     setSelectedAircraft(null);
     setSelectedRegistration(null);
 

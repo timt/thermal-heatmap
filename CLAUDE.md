@@ -112,7 +112,7 @@ DATABASE_URL="<neon-direct-url>" npx prisma migrate deploy
 
 ## Conventions
 
-- No auth, no tests, no error boundaries — this is a proof of concept.
+- No auth and no error boundaries — this is a proof of concept. Both packages have ESLint (`npm run lint`), and the worker has a `node --test` suite (`npm test` in `thermal-worker/`); CI runs these before deploying.
 - The worker processes BGA + WeGlide for today and yesterday every 15 minutes.
 - Live thermals poll the tracker API every 30 seconds.
 - The SPA polls `/thermals` every 10 seconds while status is `"processing"`.
