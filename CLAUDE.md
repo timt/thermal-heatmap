@@ -101,14 +101,16 @@ DATABASE_URL="<neon-direct-url>" npx prisma migrate deploy
 
 ## Neon Notes
 
+- **Shared project** — since June 2026 (GLI-193) this app's database lives in the **tracker** Neon project (`damp-fire-29117629`, pg18) as the logical database `thermal`, owned by the role `thermal_owner`. There is no separate thermal-heatmap Neon project any more. The tracker app's `neondb` shares the same branch and compute — see `../TECH-STACK.md` § Database for the two-bucket topology and the surgical-restore runbook (no one-click rewind on a shared branch).
 - **Pooled vs direct** — Neon exposes two endpoint hosts for the same database:
   - **Direct** (`ep-<id>.<region>.aws.neon.tech`) — for migrations (`prisma migrate deploy`) and any DDL/admin work. This is the GitHub `DATABASE_URL` secret.
   - **Pooled** (`ep-<id>-pooler.<region>.aws.neon.tech`) — PgBouncer endpoint for the long-lived worker runtime. This is the Fly.io `DATABASE_URL` secret.
   - The only difference in the URL is the `-pooler` suffix on the host. Both carry `?sslmode=require&channel_binding=require`.
+- **Connection strings** — `neonctl connection-string production --project-id damp-fire-29117629 --database-name thermal --role-name thermal_owner [--pooled]`.
 - **Region** — project lives in `aws-eu-west-2` (London), matching the Fly worker's `lhr`.
-- **Auto-suspend** — the compute suspends when idle and cold-starts on the next connection (~1–2s). Tools like `prisma migrate status` can return a transient `P1001` on the first hit; just retry. The live poller (every 30s) keeps production warm.
-- **Branching** — Neon can branch the database (copy-on-write) for preview deploys or testing a migration in isolation: `neonctl branches create --project-id <id> --name <branch>` gives an independent endpoint you can point a throwaway `DATABASE_URL` at, then `neonctl branches delete` when done.
-- **CLI** — manage via `neonctl` (`npm i -g neonctl`, `neonctl auth`). Connection strings: `neonctl connection-string [--pooled] --project-id <id>`.
+- **Compute** — always-on (no auto-suspend), autoscaling capped at 0.25–1 CU. Shared with the tracker app, so be a good neighbour: `thermal_owner` is connection-limited with a `statement_timeout`.
+- **Branching** — Neon can branch the database (copy-on-write) for preview deploys or testing a migration in isolation: `neonctl branches create --project-id <id> --name <branch>` gives an independent endpoint you can point a throwaway `DATABASE_URL` at, then `neonctl branches delete` when done. Note a branch carries **all** logical DBs on it, including tracker's.
+- **CLI** — manage via `neonctl` (`npm i -g neonctl`, `neonctl auth`). Pass `--org-id org-red-mountain-30357839` in non-interactive contexts.
 
 ## Conventions
 
