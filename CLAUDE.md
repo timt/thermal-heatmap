@@ -101,7 +101,7 @@ DATABASE_URL="<neon-direct-url>" npx prisma migrate deploy
 
 ## Neon Notes
 
-- **Shared project** — since June 2026 (GLI-193) this app's database lives in the **tracker** Neon project (`damp-fire-29117629`, pg18) as the logical database `thermal`, owned by the role `thermal_owner`. There is no separate thermal-heatmap Neon project any more. The tracker app's `neondb` shares the same branch and compute — see `../TECH-STACK.md` § Database for the two-bucket topology and the surgical-restore runbook (no one-click rewind on a shared branch).
+- **Shared project** — since June 2026 (GLI-193) this app's database lives in the **`gliderzone-continuous`** Neon project (`damp-fire-29117629`, pg18) as the logical database `thermal`, owned by the role `thermal_owner`. There is no separate thermal-heatmap Neon project any more. The tracker app's `neondb` shares the same branch and compute — see `../TECH-STACK.md` § Database for the two-bucket topology and the surgical-restore runbook (no one-click rewind on a shared branch).
 - **Pooled vs direct** — Neon exposes two endpoint hosts for the same database:
   - **Direct** (`ep-<id>.<region>.aws.neon.tech`) — for migrations (`prisma migrate deploy`) and any DDL/admin work. This is the GitHub `DATABASE_URL` secret.
   - **Pooled** (`ep-<id>-pooler.<region>.aws.neon.tech`) — PgBouncer endpoint for the long-lived worker runtime. This is the Fly.io `DATABASE_URL` secret.
