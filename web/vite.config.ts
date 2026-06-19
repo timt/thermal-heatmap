@@ -9,5 +9,8 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "src"),
     },
+    // Guard against a duplicate React when @gliderzone/auth-client is consumed via
+    // a local link during development ("Invalid hook call") — see its README.
+    dedupe: ["react", "react-dom"],
   },
 });

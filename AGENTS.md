@@ -4,6 +4,15 @@ This project **follows the shared gliding stack** — see [`../TECH-STACK.md`](.
 
 The database is the logical DB `thermal` (role `thermal_owner`) **inside the shared `gliderzone-continuous` Neon project** (`damp-fire-29117629`) — see `CLAUDE.md` § Neon Notes and `../TECH-STACK.md` § Database for the two-bucket topology and restore runbook.
 
+## Authentication (GLI-203)
+
+First app onto the shared auth platform (`auth.gliderzone.com`, Auth project).
+
+- **Web** consumes `@gliderzone/auth-client` (published on npm). `web/src/lib/authClient.ts` builds the client (override the auth URL locally with `VITE_AUTH_URL`); `AccountControl` is the sign-in/out + "signed in as…" widget.
+- **Worker** verifies JWTs locally against the auth JWKS — `thermal-worker/src/auth.ts` (`requireUser`), no callback into auth. `GET /me` is the first gated route. Claim contract is pinned by the auth service (GLI-171); don't widen reliance here.
+- **CORS/CSRF**: the worker allows the `Authorization` header (no cookies cross to it — the SSO cookie is auth's). The auth service must list `https://thermal.gliderzone.com` in `TRUSTED_ORIGINS`.
+- No new worker secrets — `AUTH_BASE_URL` defaults to `https://auth.gliderzone.com`.
+
 ## Deviations from the shared stack
 
 - **Layout**: the web app lives in `web/` (with its own `package.json`), not root-level `src/`; the backend is `thermal-worker/`.

@@ -12,6 +12,7 @@ import { processedDatesRoute } from "./routes/processed-dates.ts";
 import { flightsRoute } from "./routes/flights.ts";
 import { activityCalendarRoute } from "./routes/activity-calendar.ts";
 import { liveThermalsRoute } from "./routes/live-thermals.ts";
+import { meRoute } from "./routes/me.ts";
 import { startProcessor } from "./processor.ts";
 import { startLivePoller } from "./live-poller.ts";
 
@@ -26,6 +27,10 @@ app.use(
       "https://thermal.gliderzone.com",
       "http://localhost:5173", // Vite dev
     ],
+    // Allow the Bearer token from the auth client on gated routes (e.g. /me).
+    // No cookies cross to the worker — the session cookie is auth's; we only
+    // ever receive a short-lived JWT — so credentials stay off.
+    allowHeaders: ["Authorization", "Content-Type"],
   }),
 );
 
@@ -38,6 +43,7 @@ app.route("/", processedDatesRoute);
 app.route("/", flightsRoute);
 app.route("/", activityCalendarRoute);
 app.route("/", liveThermalsRoute);
+app.route("/", meRoute);
 
 serve({ fetch: app.fetch, port: PORT, hostname: "0.0.0.0" }, () => {
   console.log(`[server] listening on 0.0.0.0:${PORT}`);

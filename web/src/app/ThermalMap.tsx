@@ -11,6 +11,7 @@ import { AltitudeProfile } from "@/components/AltitudeProfile";
 import { AircraftFilter } from "@/components/AircraftFilter";
 import { IconBar } from "@/components/IconBar";
 import { MobileIconBar } from "@/components/MobileIconBar";
+import { AccountControl } from "@/components/AccountControl";
 import type { PanelId } from "@/components/IconBar";
 import type { UnitSystem } from "@/lib/units";
 import { apiUrl } from "@/lib/api";
@@ -415,6 +416,11 @@ export default function ThermalMap() {
             ),
           }}
         />
+      </div>
+
+      {/* Account control: top-right */}
+      <div className="safe-top absolute right-2 top-2 z-[1000]">
+        <AccountControl />
       </div>
 
       {/* Processing indicator: top-centre */}
